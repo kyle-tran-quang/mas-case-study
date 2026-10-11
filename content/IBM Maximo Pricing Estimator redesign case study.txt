@@ -1,0 +1,93 @@
+IBM Maximo Pricing Estimator redesign case study
+#casestudy
+
+Notes:
+I think of dividing the case studies into 2 parts, 3 most important case studies:
+- Featured case studies: Maximo pricing, Maximo readiness assessment, CarDoctor. Main “book-style” cards
+- Read more (less important) case studies: CarDS, HSECare, Unblock, Breadslice. Use a less prominent card style.
+
+## Structure
+Case study narrative arc (the “story” per project)
+Use this structure for each project
+
+## Overview - business metrics upfront
+Maximo Pricing Estimator aims to reduce...
+- 10,000k wasted hours in sales
+- 60% faster enterprise client time-to-deal time
+
+## Setup – The problem & context
+Context: Maximo is a respected 40-year-old ALM software with many complex features that fit large-scale companies. To make it more flexible for companies to use it to manage their daily operations, Maximo uses a token currency called “AppPoints” as the main usage driver.
+
+
+## What was broken or missing? - **Key insights**
+My 5 interviews with sellers showed that:
+Many users found the “AppPoints” term confusing. Even the internal sellers at IBM found it like that. It’s powerful but too complex.
+
+*“They don’t make sense to us. Why are you doing this? Why is this so complicated?...It’s another level of abstraction… Instead of just saying the technician costs $20 amonth, it’s the technician is 2 AppPoints and 1 AppPoint equals $10.”*
+
+And also, the pricing page (on IBM.com) doesn’t really articulate and break down well about what they’re paying for. Things are either too simple or too complex at the same time.
+
+*[a picture of the current pricing page]* 
+
+## Who was affected (users, business)?
+Users don’t know what AppPoints is. My research shows that customers only care about how much they have to pay and what value they get.
+Sellers having difficulties explaining what AppPoints is to users, and making quotes that converts AppPoints to real currency.
+*“3 clients are like, we don’t like AppPoints.”*
+*“Most of our customers are actually confused at just what an AppPoint is, much less the pricing calculator.”*
+
+
+## What made this hard?
+Complex and legacy process, too many people involved
+Introducing a process disruption - as we already have a lot of tools. The problem is how to make it more efficient and controllable by the people using them. New tools doesn’t necessarily mean it’s better, we need a balance more.
+Hard to explain the AppPoints concept to customers.
+Internal sellers have to go through a rigid and manual quoting process. 
+
+# Time, budget, tech, organisational constraints:
+- Key stakeholders involved: Sellers - PMs - Approvers - Customer Success Engineers (CSE), before the quote and pricing reaches the customer
+- Many layers of tooling - Excel calculator, IBM Sales Cloud, Salesforce CPQ payloads (configure, price, quote), Slack (communication), email, etc... Gainsight (nurture)
+	[show screenshot of Excel calc. Here - make sure to make confidential]
+- Time constraints: 6 months. And a lot of meetings going back and forth with the stakeholders to align.
+
+
+## Why did it matter?
+This makes it harder to sell Maximo
+*[insert some BIG numbers here]*
+Deal times are longer (6 MONTHS - 2 YEARS)
+10k+ hours wasted per year, 3-6 mos for the seller to be proficient in the tool, Sales cycle for nurture spans from 9 months - 2 years etc.
+
+*One-sentence problem statement + 2–3 sentences of context.*
+
+## Solution
+
+Used Carbon Design System v11
+Show artifacts and rationale here:
+*Note:*
+*These as-is calculator insights will be weaved into the solution*
+- *Frequent calculator updates cause sellers to use outdated versions and restart from scratch*
+	- Visual 1 for the solutiona
+- *Files must be saved as XLS for CPQ import*
+- *Scrolling through all Essentials options to reach Standard and Premium is cumbersome*
+- *Manual handoff and version control is difficult and risk of incorrect and lost information.*
+
+Why this solution but nothing else? Document your rationale here, for each example.
+
+Thought of an “interconnected tool” good for scale, but that created an another problem of the “how”, and infrastructure problems. Involves a one or two year-long process to productize, since “it’s IBM, not a startup”. We have to stick to our rigorous process.
+Remind of “not having another tool that adds to the mix and get forgotten”.
+“Simple is enough. Adhering to the goal (providing a quote to the customer) is enough.”
+Pricing is still not final - it still has to go through manual review. But what I’m trying to do here is to make the process quicker.
+
+## The impact
+What changed because of your work:
+[show metrics of the expected impact]
+Momentum shifts
+What kind of momentum shift can there be? What kind of org-wide impact that I have provided? How did I influence the higher-ups about this?
+
+The reflection
+
+What you learned
+When and where to use AI, and switch back to Figma
+
+What you’d do differently
+
+Be honest and vulnerable; show growth and mistakes
+
