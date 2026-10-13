@@ -35,6 +35,23 @@ The quoting tool compounded it. The AppPoints Calculator was a versioned Excel f
 <!-- 📸 Visual: Quoting chain diagram -->
 <!-- Show: Seller → PM → Approver → CSE → Customer (5 handoffs, with tool labels: Excel, CPQ, Slack, email, Salesforce) -->
 
+### Why the quote is hard to get right
+
+The quoting process is sophisticated, and for real reasons. A Maximo quote isn't a price lookup. It's a sizing exercise with several variables moving at once:
+
+- **Point count depends on who, how, and what.** AppPoints draw from one shared pool. The draw depends on user tier (Limited, Base, Premium), access type (authorized, concurrent, admin), the applications each user touches, and the environments installed.
+- **Points are consumed on different rules.** Authorized users take points when they're created. Concurrent users take them only while logged in. Installs take them permanently once activated. The seller models all three.
+- **Two delivery models price differently.** Customer-managed licenses and SaaS carry separate part numbers. SaaS is charged hourly by activated capability and business-value metrics, not seats alone.
+- **Deal type changes the math.** New deals, renewals, and trade-ups from legacy Maximo products follow different rules. Trade-ups require active support on the products being surrendered, and non-standard pricing goes through the MAS project office.
+- **Editions sit on top.** Essentials is an entry-level package set, and Standard opens the full Maximo portfolio. The same customer can price very differently depending on which they choose.
+
+None of this was the problem to remove. It was the complexity the new tool had to hold *for* the seller.
+
+<!-- Sources (product-knowledge MCP):
+  Public: ibm.com/docs/en/masv-and-l/cd?topic=overview-licensing-in-maximo-application-suite · ibm.com/products/maximo/pricing
+  Internal (Seismic, not client-shareable): "Maximo Application Suite AppPoint Calculator – Details – New Deal"; MAS enablement/seller decks on AppPoint usage
+  Confidentiality: calculator uplift percentages and pricing guidance are IBM-internal. Keep specific figures out of the public portfolio. -->
+
 ### The numbers
 
 | Pain point | Data |
@@ -58,7 +75,7 @@ Every seller built their own shadow tools—custom calculators, questionnaires, 
 <!-- 📸 Visual: Final chatbot UI screens (2–3 key states) -->
 <!-- Show: the guided, step-by-step flow — not a freeform chat box -->
 
-Phase 1 gives the seller a guided, interview-style workflow: answer questions about the client's roles and environment, and the system maps licenses and generates a CPQ-ready quote automatically. No manual copy-paste. No outdated spreadsheet versions.
+I took part in designing the chat interface on watsonx Orchestrate, focused on giving the seller a guided, interview-style workflow: answer questions about the client's roles and environment, and the system maps licenses and generates a CPQ-ready quote automatically. No manual copy-paste. No outdated spreadsheet versions.
 
 Key outcomes so far:
 
@@ -91,9 +108,9 @@ Estimated impact:
 
 ## Bridge — How the solution came together
 
-### Research: 5 seller interviews → 15-seller validation
+### Research: 12 interviews → 15-seller validation
 
-I ran 5 in-depth interviews across the sales org—SMEs, ecosystem leaders, global sales, and MREF sales. Clients don't care about AppPoints. They want to know what they're paying and what they get.
+I ran in-depth interviews with **8 sellers** (SMEs, ecosystem leaders, global sales, and MREF sales) and **4 Customer Success Engineers (CSEs)**, who see the quote from the other side of the handoff. Clients don't care about AppPoints. They want to know what they're paying and what they get.
 
 > *"Most of our customers are actually confused at just what an AppPoint is, much less the pricing calculator."*  
 > — Interview 2
@@ -101,7 +118,9 @@ I ran 5 in-depth interviews across the sales org—SMEs, ecosystem leaders, glob
 <!-- 📸 Visual: Affinity map or key themes wall from seller interviews -->
 <!-- Show research synthesis, not just the output — 4–5 labeled clusters -->
 
-I validated directions with 15 sellers before the first build locked in.
+**The insight that shaped Phase 1:** sellers didn't want a chatbot. They wanted something that would let them *control the quote*. The quote carries their name and goes to an approver, so a freeform conversation was the wrong shape. A guided flow with structured inputs was the right one.
+
+Before production, I validated both the workflow and the prototype with **15 sellers**.
 
 ### The concept I ruled out—and why it mattered
 
@@ -116,6 +135,7 @@ Productizing a cross-system integration at IBM takes 1–2 years. Sellers alread
 
 ### The constraints that shaped the solution
 
+- **Pricing sophistication**: AppPoint math varies by user tier, access type, application, install, delivery model (customer-managed vs. SaaS), and deal type (new, renewal, trade-up). The tool had to carry that logic without exposing it
 - **Legacy stack**: Excel → CPQ payloads → Salesforce → Slack → email—not replaceable overnight
 - **Approval process**: Quotes still require human review; the goal was speed, not removal
 - **Seller trust**: Most sellers had built their own shadow tools. The new tool had to feel *simpler*, not more powerful
@@ -137,7 +157,17 @@ IBM also taught me that design decisions have to survive months of alignment mee
 AppPoints are still the engine under every calculation. I'd push earlier for an admin tool that lets executives update AppPoints-to-currency rates without engineering involvement—because the simplicity on the front end is only as reliable as the mapping behind it.
 
 **What I'd still explore:**
-If the pricing model ever moves away from AppPoints entirely, what does the estimator look like when the abstraction layer is gone?
+The seller workflow inside the enterprise environment. The estimator fixes the quote, but the quote is one step in a longer chain: seller, PM, approver, CSE, customer, spread across Excel, CPQ, Salesforce, Slack, email, and Gainsight. Each handoff has its own owner, its own tool, and its own version of the truth. That's where the 3 quote iterations and the 1–2 day SRE reviews come from, and it's where sellers' shadow tools came from too.
+
+I scoped to the workflow because I couldn't boil the ocean on AppPoints. Changing the model touches licensing rules, part numbers, CPQ payloads, and executive-owned rate mappings, and I don't control any of those. The seller's workflow was the part I could change without waiting on them.
+
+The questions I'd pick up next:
+- Where does a quote actually stall: in the handoffs, the approval queue, or the rework after a change?
+- Which of the shadow tools do sellers rely on, and what does that say about gaps in the official flow?
+- How does the workflow differ by deal type (new, renewal, trade-up) and by seller experience, given the 3–6 months it takes to become proficient?
+- What would it take for approvers and CSEs to work from the same quote record instead of passing files?
+
+And the question I parked: if the pricing model ever moves away from AppPoints, what does the estimator look like when the abstraction layer is gone?
 
 ---
 
