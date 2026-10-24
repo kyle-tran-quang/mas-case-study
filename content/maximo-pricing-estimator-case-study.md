@@ -68,7 +68,7 @@ Every seller built their own shadow tools—custom calculators, questionnaires, 
 
 ---
 
-## After — Two phases toward a single source of truth
+## After — Three phases toward transparency and speed
 
 ### Phase 1 — AI chatbot (Feb–May 2026, private preview Sept 2026)
 
@@ -104,6 +104,81 @@ Estimated impact:
 <!-- 📸 Visual: Before/after side-by-side -->
 <!-- Left: AppPoints abstraction layers → Right: plain dollar-cost summary output -->
 
+### Phase 3 — Public pricing experience on ibm.com (exploratory prototype)
+
+While Phase 1 and Phase 2 focus on fixing the seller-side quoting workflow internally, the disconnect actually starts much earlier—on the public web.
+
+On the live [Maximo pricing page on ibm.com](https://www.ibm.com/products/maximo/pricing), the experience doesn't explain how licensing or AppPoints work. Instead, it surfaces technical line items and add-on jargon—such as "additional users," "non-production environments," and isolated module names—without providing any context on what a team actually needs to run their operations. Prospective buyers leave confused, unable to self-qualify, and enter sales conversations completely unprepared for how Maximo is sized.
+
+I designed an exploratory concept prototype to reimagine the public pricing experience, transforming it from a static list of technical add-ons into a guided, self-service estimator.
+
+<!-- 🎥 Video: Interactive walkthrough of the redesigned ibm.com pricing prototype -->
+<!-- Prototype link: https://solid-neo-33857599.figma.site/ -->
+<!-- Caption: Interactive walkthrough showing guided role-based sizing and live cost estimation for prospective buyers on ibm.com -->
+
+---
+
+#### Before vs. after: Key improvements
+
+##### 1. Technical add-on jargon vs. role-based team sizing
+
+<!-- 📸 Visual side-by-side: Technical module list vs. role-based team selector -->
+<!-- Left (Before): Opaque add-ons ("non-production environment", "additional users") -->
+<!-- Right (After): Plain-language role selectors (Technicians, Operations managers, Admins) -->
+
+- **Before:** Confronts users with technical line items like "non-production environments" and unguided user add-ons with zero explanation of why or when they are needed.
+- **After:** Grounds estimation in operational reality—users simply specify the number of field technicians, operations managers, and administrators they have, and the tool handles the licensing logic behind the scenes.
+
+##### 2. Static tier cards vs. dynamic self-service estimation
+
+<!-- 📸 Visual side-by-side: Static pricing cards vs. dynamic live cost summary -->
+<!-- Left (Before): Static "Essentials" vs. "Standard" cards pushing to "Contact sales" -->
+<!-- Right (After): Live recalculating cost breakdown with transparent tier options -->
+
+- **Before:** Presents static cards with starting prices that do not reflect real enterprise deployment scale, forcing users into an immediate "Contact sales" dead-end.
+- **After:** Provides an interactive calculator that recalculates estimated monthly and annual investment in real time as users adjust team size, edition, and capabilities.
+
+##### 3. Disjointed module lists vs. clear capability mapping
+
+<!-- 📸 Visual side-by-side: Opaque SKU list vs. clear capability breakdown -->
+<!-- Left (Before): High-level feature bullets that obscure what is actually included -->
+<!-- Right (After): Modular capability selector showing what each edition unlocks and what is optional -->
+
+- **Before:** Glosses over how different applications fit together, leaving buyers guessing which capabilities belong in Essentials vs. Standard.
+- **After:** Clearly maps business capabilities (asset monitoring, predictive maintenance, visual inspection) to package editions with plain-language explanations.
+
+##### 4. Static wall-of-text FAQs vs. context-aware suggested FAQs
+
+<!-- 📸 Visual side-by-side: Long static FAQ list vs. dynamic suggested FAQ cards -->
+<!-- Left (Before): Exhaustive, generic accordion list requiring heavy scrolling -->
+<!-- Right (After): Contextually relevant questions suggested based on the user's active choices -->
+
+- **Before:** Dumps a lengthy, monolithic FAQ accordion at the bottom of the page, forcing prospects to hunt through dense walls of enterprise text.
+- **After:** Surfaces suggested, context-aware FAQs that dynamically adapt based on what the user selects in the estimator (such as edition, team size, or capabilities)—reducing cognitive overload by answering the right questions at the moment of evaluation.
+
+##### 5. Dense data overload vs. progressive benefit estimation
+
+<!-- 📸 Visual side-by-side: Overwhelming data-dense calculator vs. progressive value estimator -->
+<!-- Left (Before): Monolithic calculator displaying dozens of simultaneous variables and figures -->
+<!-- Right (After): Step-by-step progressive disclosure focusing on key business outcomes -->
+
+- **Before:** Laid out dozens of numbers and variables all at once with the unrealistic assumption that users could digest them at a glance, resulting in data overload rather than clear ROI.
+- **After:** Guides users through progressive disclosure, breaking the calculation into digestible steps and focusing output numbers directly on the tangible business value Maximo delivers (such as downtime reduction, maintenance savings, and technician productivity).
+
+---
+
+| Dimension | Before ([ibm.com pricing page](https://www.ibm.com/products/maximo/pricing)) | After ([interactive concept prototype](https://solid-neo-33857599.figma.site/)) |
+|---|---|---|
+| **Sizing model** | Raw technical line items ("non-production environments", "additional users") | Role-based inputs translated into practical licensing requirements |
+| **Cost estimation** | Static tier cards forcing an immediate "Contact sales" form | Interactive self-service estimation with real-time recalculation |
+| **Capability clarity** | Disjointed feature bullets with unclear boundaries between tiers | Plain-language mapping of operational capabilities to package editions |
+| **Benefit & ROI estimation** | Monolithic grid of numbers causing analysis paralysis | Step-by-step progressive disclosure focusing on potential business value |
+| **FAQ & guidance** | Lengthy static accordion creating cognitive overload | Dynamic, context-aware FAQs suggested based on active user selections |
+| **Sales handoff** | Cold handoff; seller spends early calls clarifying basic terminology and pricing | Warm handoff; prospect enters sales calls already aligned on baseline sizing |
+
+> **Side note / Prototype disclaimer:**
+> The redesigned pricing page is an exploratory vision prototype created to demonstrate how IBM could communicate value and pricing transparency to prospective clients. It does not claim to fully resolve the underlying AppPoints licensing complexity, which remains a systemic product and business challenge. Rather, it explores how thoughtful UX can bridge the gap between complex enterprise licensing models and clear buyer comprehension.
+
 ---
 
 ## Bridge — How the solution came together
@@ -112,15 +187,33 @@ Estimated impact:
 
 I ran in-depth interviews with **8 sellers** (SMEs, ecosystem leaders, global sales, and MREF sales) and **4 Customer Success Engineers (CSEs)**, who see the quote from the other side of the handoff. Clients don't care about AppPoints. They want to know what they're paying and what they get.
 
-> *"Most of our customers are actually confused at just what an AppPoint is, much less the pricing calculator."*  
+> *"Most of our customers are actually confused at just what an AppPoint is, much less the pricing calculator."*
 > — Interview 2
 
 <!-- 📸 Visual: Affinity map or key themes wall from seller interviews -->
 <!-- Show research synthesis, not just the output — 4–5 labeled clusters -->
 
-**The insight that shaped Phase 1:** sellers didn't want a chatbot. They wanted something that would let them *control the quote*. The quote carries their name and goes to an approver, so a freeform conversation was the wrong shape. A guided flow with structured inputs was the right one.
+**The insight that shaped Phase 1:** sellers didn't want a freeform chatbot. They wanted something that would let them *control the quote*. The quote carries their name and goes to an approver, so an unstructured conversation was the wrong shape. A guided flow with structured inputs and clear guardrails was the right one.
 
-Before production, I validated both the workflow and the prototype with **15 sellers**.
+#### Validation with 15 sellers: From shadow tools to confidence
+
+Before moving to production, I conducted task-based usability walkthroughs with **15 sellers** across North America, EMEA, and APAC, testing realistic enterprise quoting scenarios (new deals, trade-ups, and mixed authorized/concurrent user pools).
+
+The validation focused on three core questions:
+1. Could sellers generate an accurate, CPQ-ready quote in under 10 minutes?
+2. Did sellers feel confident enough in the output to show it to clients and approvers?
+3. Would this eliminate their reliance on custom shadow spreadsheets?
+
+<!-- 📸 Visual: Usability validation matrix / seller feedback quotes board -->
+<!-- Show: Task completion rates and key feedback themes from the 15-seller validation round -->
+
+The response was an overwhelming shift in confidence. Sellers immediately recognized that the tool handled the complex AppPoints math under the hood without forcing them to manually debug formulas or reconcile version conflicts.
+
+> *"I don't have to second-guess whether I broke a macro or entered an outdated part number. I can actually run through this on a call with a client and generate a clean quote in minutes instead of spending my weekend debugging formulas."*
+> — Seller Validation Session 6
+
+> *"This completely replaces the cheat sheet spreadsheet I built two years ago. It gives me the numbers I need without making me fight the tool."*
+> — Senior Enterprise Seller, Validation Session 11
 
 ### The concept I ruled out—and why it mattered
 
@@ -179,8 +272,11 @@ And the question I parked: if the pricing model ever moves away from AppPoints, 
 | 2 | Excel AppPoints Calculator (redacted) | Before |
 | 3 | 5-step quoting chain diagram | Before |
 | 4 | Affinity map from seller research | Bridge |
-| 5 | Concept comparison: platform vs. estimator | Bridge |
-| 6 | Chatbot UI — 2–3 guided flow screens | After Phase 1 |
-| 7 | Unified estimator concept screens | After Phase 2 |
-| 8 | Before/after: AppPoints → dollar summary | After |
-| 9 | Carbon v11 annotated screen | Bridge |
+| 5 | Usability validation matrix / feedback board (15 sellers) | Bridge |
+| 6 | Concept comparison: platform vs. estimator | Bridge |
+| 7 | Chatbot UI — 2–3 guided flow screens | After Phase 1 |
+| 8 | Unified estimator concept screens | After Phase 2 |
+| 9 | Before/after: AppPoints → dollar summary | After Phase 2 |
+| 10 | Public pricing prototype walkthrough video | After Phase 3 |
+| 11 | Public pricing side-by-side visual comparisons (5 sets) | After Phase 3 |
+| 12 | Carbon v11 annotated screen | Bridge |
