@@ -71,6 +71,8 @@ We designed **M-GRAT (Maximo Growth Readiness Assessment Tool)** — a cohesive,
 3. **Instant, Presentation-Ready Growth Report:** Generates an immediate visual breakdown of maturity gaps, categorized obstacles, and a prioritized 5-point action plan.
 4. **Print-First PDF Deliverable:** A dedicated `@media print` layout that transforms the browser view into an executive-ready PDF strategy brief with a single click.
 
+// Need to add in for the future phase (Ideally what I'm working on) - in this case it's the Data Readiness dashboard and how the readiness assessment can potentially help. Bob - need to figure out how that will fit the workflow itself.
+
 ---
 
 ## 3. THE BRIDGE — Process, Prototyping & Logic Validation
