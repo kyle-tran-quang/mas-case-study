@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI Assembly Animation</title>
+<style>
+  /* ===== THEME: change values here, never in the engine ===== */
+  :root {
+    --bg: #e9e9ec; --line: #1c1c1f; --line-faint: rgba(28,28,31,.35); --fill: rgba(28,28,31,.035);
+    --accent: #ff5a1f; --accent-ink: #fff; --text: #1c1c1f; --muted: #6b6b72;
+    --surface0: #f1f1f3; --surface: #fbfbfc; --grid: rgba(28,28,31,.10);
+    --stroke: 1.25px;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416; --line: #ececf0; --line-faint: rgba(236,236,240,.35); --fill: rgba(236,236,240,.04);
+      --text: #ececf0; --muted: #8e8e96; --surface0: #1a1a1e; --surface: #222226; --grid: rgba(236,236,240,.08);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416; --line: #ececf0; --line-faint: rgba(236,236,240,.35); --fill: rgba(236,236,240,.04);
+    --text: #ececf0; --muted: #8e8e96; --surface0: #1a1a1e; --surface: #222226; --grid: rgba(236,236,240,.08);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+
+  /* ===== SPLIT LAYOUT: stage left, text right ===== */
+  .layout { display: grid; grid-template-columns: 1fr 1fr; }
+  .stage-col { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+  #stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 50% 40%; }
+  #world { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; will-change: transform;
+           /* --inv is set by the engine = 1 / world scale. It keeps strokes, labels and annotations a constant on-screen size. */
+           --sw: calc(var(--stroke) * var(--inv, 1)); }
+  .grid { position: absolute; left: -1200px; top: -1400px; width: 3600px; height: 3600px; transform: translateZ(-8px);
+          background-image: linear-gradient(to bottom, var(--grid) 0, var(--grid) calc(var(--inv,1) * 1px), transparent calc(var(--inv,1) * 1px)),
+                            linear-gradient(to right,  var(--grid) 0, var(--grid) calc(var(--inv,1) * 1px), transparent calc(var(--inv,1) * 1px));
+          background-size: 60px 60px; -webkit-mask-image: radial-gradient(closest-side, #000 25%, transparent 100%); mask-image: radial-gradient(closest-side, #000 25%, transparent 100%); }
+
+  .hud { position: absolute; left: 28px; right: 28px; bottom: 26px; font: 11px/1 var(--mono); letter-spacing: .08em; color: var(--muted); z-index: 2; }
+  .hud .rail { height: 1px; background: var(--line-faint); margin-top: 10px; position: relative; }
+  .hud .rail i { position: absolute; inset: 0; background: var(--line); transform-origin: 0 50%; transform: scaleX(0); }
+  .theme-btn { position: absolute; top: 20px; right: 20px; z-index: 2; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-faint);
+               background: transparent; color: var(--text); cursor: pointer; font-size: 14px; line-height: 1; }
+
+  .text-col { padding: 0 6vw; }
+  .text-col section { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; opacity: .22; transition: opacity .35s; }
+  .text-col section.active { opacity: 1; }
+  .text-col .eyebrow { font: 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+  .text-col h2 { font-size: clamp(28px, 3vw, 44px); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 12px; }
+  .text-col p { color: var(--muted); max-width: 46ch; margin: 0; }
+
+  /* ===== PIECES ===== */
+  .piece { position: absolute; left: 0; top: 0; transform-style: preserve-3d; will-change: transform, opacity; }
+  .piece .face, .piece .outline, .piece .layer { position: absolute; inset: 0; border-radius: 6px; }
+  .piece .face { background: var(--surface); border: var(--sw) solid var(--line-faint); overflow: hidden; opacity: 0; }
+  .piece[data-kind="shell"] .face { background: var(--surface0); }
+  .piece .face i { position: absolute; border-radius: 3px; background: var(--line); }
+  .piece .face i.d { opacity: .8; } .piece .face i.m { opacity: .38; } .piece .face i.l { opacity: .13; } .piece .face i.a { background: var(--accent); }
+  .piece .outline { border: var(--sw) solid var(--line); background: var(--fill); }
+  .piece[data-kind="shell"] .outline { border-color: var(--line-faint); }
+  .piece .layer { background-repeat: no-repeat; pointer-events: none; }
+  .piece .tag { position: absolute; left: 0; top: 0; font: 10px/1 var(--mono); letter-spacing: .05em; padding: 3px 5px; white-space: nowrap;
+                background: var(--bg); color: var(--line); transform-origin: 0 100%; transform: translateY(-100%) scale(var(--inv, 1)); }
+  .piece .skel { position: absolute; left: 10%; right: 10%; height: 0; border-top: var(--sw) solid var(--line-faint); }
+
+  /* ===== LIVING ELEMENTS (collaboration, feedback, annotation) ===== */
+  .ex { position: absolute; left: 0; top: 0; transform-style: preserve-3d; will-change: transform, opacity; pointer-events: none; visibility: hidden; }
+  .ex .body { position: absolute; left: 0; top: 0; }
+  /* cursor */
+  .cur { display: block; fill: var(--accent); stroke: var(--bg); stroke-width: 1.2; filter: drop-shadow(0 1px 0 rgba(0,0,0,.12)); }
+  .flag { position: absolute; left: 12px; top: 17px; font: 600 11px/1 var(--mono); padding: 4px 7px; white-space: nowrap;
+          background: var(--accent); color: var(--accent-ink); border-radius: 3px 9px 9px 9px; }
+  .tone-line .cur { fill: var(--line); } .tone-line .flag { background: var(--line); color: var(--bg); }
+  /* comment pin */
+  .pin-dot { position: absolute; left: 0; top: 0; transform: translate(0,-100%); width: 24px; height: 24px; border-radius: 50% 50% 50% 0; background: var(--accent);
+             color: var(--accent-ink); font: 700 11px/24px var(--mono); text-align: center; }
+  .pin-bub { position: absolute; left: 32px; top: -34px; width: max-content; max-width: 190px; padding: 8px 11px; opacity: 0; transform-origin: 0 100%;
+             border: 1.25px solid var(--accent); background: var(--bg); color: var(--text); font: 12px/1.35 system-ui, sans-serif; border-radius: 10px 10px 10px 2px; }
+  .pin-bub.flip { left: auto; right: 32px; transform-origin: 100% 100%; border-radius: 10px 10px 2px 10px; }
+  .pin-bub b { display: block; font: 600 10px/1 var(--mono); letter-spacing: .06em; color: var(--accent); margin-bottom: 5px; text-transform: uppercase; }
+  /* sticky note */
+  .note { width: 138px; padding: 10px 11px; border: 1.25px solid var(--line); background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+          font: 12px/1.35 var(--mono); color: var(--text); transform: translate(-50%,-100%) rotate(var(--rot)); box-shadow: 3px 3px 0 var(--line-faint); }
+  /* chip, avatar, stamp */
+  .chip { display: block; transform: translate(-50%,-100%); font: 600 11px/1 var(--mono); padding: 6px 10px; border: 1.25px solid var(--accent); color: var(--accent);
+          background: var(--bg); border-radius: 999px; white-space: nowrap; }
+  .av { display: block; transform: translate(-50%,-50%); width: 26px; height: 26px; border-radius: 50%; border: 1.25px solid var(--line); background: var(--bg);
+        font: 600 10px/24px var(--mono); text-align: center; color: var(--text); }
+  .tone-accent .av { border-color: var(--accent); color: var(--accent); }
+  .stamp { display: block; transform: translate(-50%,-50%) rotate(var(--rot)); font: 700 14px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
+           border: 2px solid var(--accent); outline: 1px solid var(--accent); outline-offset: 2px; padding: 7px 13px; white-space: nowrap; }
+  /* callout */
+  .ex-callout .dot { position: absolute; left: 0; top: 0; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--accent); }
+  .ex-callout .ln { position: absolute; left: 0; top: 0; height: 0; border-top: 1.25px solid var(--accent); transform-origin: 0 0; }
+  .clab { display: block; font: 12px/1.2 var(--mono); color: var(--text); padding: 0 2px 5px; border-bottom: 1.25px solid var(--accent); white-space: nowrap; }
+  /* ruler (flat on the plane) */
+  .ex-ruler i { position: absolute; }
+  .rl-line.x { border-top: var(--sw) solid var(--accent); } .rl-line.y { border-left: var(--sw) solid var(--accent); }
+  .rl-tick { background: var(--accent); }
+  .rl-lbl { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+  .rl-lbl span { display: block; transform: translate(-50%,-50%); font: 600 11px/1 var(--mono); padding: 4px 7px; background: var(--bg); color: var(--accent); border: 1.25px solid var(--accent); white-space: nowrap; border-radius: 3px; }
+  /* selection box (flat on the plane) */
+  .ex-select { border: var(--sw) solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .ex-select .hd { position: absolute; width: calc(7px * var(--inv, 1)); height: calc(7px * var(--inv, 1)); background: var(--bg); border: var(--sw) solid var(--accent); }
+  .hd.tl { left: calc(-3.5px * var(--inv,1)); top: calc(-3.5px * var(--inv,1)); } .hd.tr { right: calc(-3.5px * var(--inv,1)); top: calc(-3.5px * var(--inv,1)); }
+  .hd.bl { left: calc(-3.5px * var(--inv,1)); bottom: calc(-3.5px * var(--inv,1)); } .hd.br { right: calc(-3.5px * var(--inv,1)); bottom: calc(-3.5px * var(--inv,1)); }
+  .sel-lbl { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+  .sel-lbl span { display: block; transform: translate(0,-100%); margin-top: -4px; font: 600 10px/1 var(--mono); letter-spacing: .04em; padding: 4px 7px; background: var(--accent); color: var(--accent-ink); white-space: nowrap; border-radius: 3px 3px 0 0; }
+
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    .stage-col { height: 55vh; z-index: 1; background: var(--bg); }
+    .text-col section { min-height: 80vh; }
+  }
+  @media (prefers-reduced-motion: reduce) { .text-col section { transition: none; } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="stage-col">
+    <button class="theme-btn" id="theme" aria-label="Toggle light and dark theme">&#9680;</button>
+    <div id="stage" role="img" aria-label="Animated story of the design iterations. The text beside it describes each step.">
+      <div id="world"><div class="grid" id="grid"></div></div>
+    </div>
+    <div class="hud" aria-hidden="true"><span id="hud-title"></span><div class="rail"><i id="hud-fill"></i></div></div>
+  </div>
+  <!-- Right half: one <section> per beat. Replace with the user's copy. -->
+  <div class="text-col" id="text">
+    <section data-beat="v1-assemble"><div class="eyebrow">01 &mdash; Iteration one</div><h2>Built from the blueprint</h2><p>Placeholder: what the first design was trying to solve.</p></section>
+    <section data-beat="v1-resolve"><div class="eyebrow">02 &mdash; Review</div><h2>Then the feedback landed</h2><p>Placeholder: what stakeholders and users said about the first design.</p></section>
+    <section data-beat="morph"><div class="eyebrow">03 &mdash; Iteration</div><h2>What changed, and why</h2><p>Placeholder: the insight that drove iteration two.</p></section>
+    <section data-beat="v2-resolve"><div class="eyebrow">04 &mdash; Outcome</div><h2>The improved design</h2><p>Placeholder: the result and its impact.</p></section>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   DATA: fill this in per project. The engine below should not need edits.
+   Demo content is placeholder. Real projects supply frames[].src and real pieces.
+   ========================================================================= */
+const SCENE = {
+  mode: "continuous",            // "continuous" | "snap" (snap uses beat.snap anchors)
+  scrollVh: 1000,                // total scroll distance in viewport heights
+  lift: 70,                      // z per depth level in blueprint view (ref px)
+  grid: true,                    // drafting grid under the stack in 3D views
+  frames: {                      // one per iteration: native size + source image (optional)
+    v1: { w: 1200, h: 800, src: "" },   // e.g. "assets/v1.png"
+    v2: { w: 1200, h: 800, src: "" }
+  },
+  // enter: drop | slideL | slideR | rise | unfold | pop     origin: CSS transform-origin (unfold hinges)
+  pieces: [
+    { id: "page",  label: "Page",   kind: "shell",   depth: 0, enter: "rise",   rects: { v1: {x:0,y:0,w:1200,h:800},    v2: {x:0,y:0,w:1200,h:800} } },
+    { id: "nav",   label: "Nav",    kind: "nav",     depth: 1, enter: "slideL", rects: { v1: {x:0,y:0,w:1200,h:72},     v2: {x:0,y:0,w:1200,h:72} } },
+    { id: "hero",  label: "Hero",   kind: "heading", depth: 1, enter: "drop",   rects: { v1: {x:60,y:110,w:1080,h:200}, v2: {x:60,y:110,w:620,h:200} } },
+    { id: "cardA", label: "Card A", kind: "card",    depth: 2, enter: "unfold", origin: "50% 100%", rects: { v1: {x:60,y:350,w:520,h:380},  v2: {x:60,y:350,w:340,h:380} } },
+    { id: "cardB", label: "Card B", kind: "card",    depth: 2, enter: "unfold", origin: "50% 100%", rects: { v1: {x:620,y:350,w:520,h:380}, v2: {x:430,y:350,w:340,h:380} } },
+    { id: "chart", label: "Chart",  kind: "chart",   depth: 2, enter: "pop",    rects: { v2: {x:800,y:350,w:340,h:380} } }
+  ],
+  /* Living elements. type: cursor | pin | note | callout | ruler | select | chip | avatar | stamp
+     Each has keys: { t, o, a, at, dx, dy }.  at = "pieceId@ax,ay" (0..1 inside the piece's current box; follows it through morphs).
+     dx,dy = on-screen pixel offset. Budget: at most 3 visible at once. Filled in by buildKeys() below. */
+  extras: [
+    { id: "kyle",  type: "cursor",  name: "Kyle",  tone: "line" },
+    { id: "maya",  type: "cursor",  name: "Maya" },
+    { id: "note1", type: "note",    text: "Hero is loud. Trim it?", rot: 3 },
+    { id: "pin1",  type: "pin",     n: 1, author: "Maya", text: "Card B gets skipped in testing" },
+    { id: "sel",   type: "select" },
+    { id: "rule",  type: "ruler",   axis: "x", gap: 44, text: "auto" },
+    { id: "call",  type: "callout", text: "New: usage trend" },
+    { id: "jr",    type: "avatar",  initials: "JR", tone: "accent" },
+    { id: "chip1", type: "chip",    text: "-38% time on task" },
+    { id: "ok",    type: "stamp",   text: "Approved", rot: -8 }
+  ],
+  camera: [
+    { t: 0.00, rx: 58, rz: -45, s: 0.62 },
+    { t: 0.25, rx: 55, rz: -20, s: 0.66 },
+    { t: 0.40, rx: 0,  rz: 0,   s: 0.80 },
+    { t: 0.47, rx: 0,  rz: 0,   s: 0.80 },
+    { t: 0.52, rx: 55, rz: -25, s: 0.62 },
+    { t: 0.66, rx: 55, rz: -38, s: 0.58 },     // keep wide yaw paired with a smaller scale so corners stay on stage
+    { t: 0.80, rx: 0,  rz: 0,   s: 0.80 },
+    { t: 1.00, rx: 0,  rz: 0,   s: 0.80 }
+  ],
+  beats: [
+    { id: "v1-assemble", range: [0.00, 0.25], title: "Assemble v1", snap: 0.12 },
+    { id: "v1-resolve",  range: [0.25, 0.47], title: "Review v1",   hold: true, snap: 0.42 },
+    { id: "morph",       range: [0.47, 0.70], title: "Iterate",     snap: 0.60 },
+    { id: "v2-resolve",  range: [0.70, 1.00], title: "Outcome v2",  hold: true, snap: 0.90 }
+  ]
+};
+
+/* ---------- Piece keyframe generators. Compose per piece per beat; keys merge and sort by t. ---------- */
+const G = {
+  rest: (p, t, rect) => ({ t, x:0, y:0, z:0, rx:0, rz:0, s:1, o:1, f:1, rect }),
+  // style: drop | slideL | slideR | rise | unfold | pop. Staggered by `order` of `count`.
+  enter(style, p, t0, t1, rect, order, count, L) {
+    const stag = 0.5 * (t1 - t0), step = count > 1 ? stag / (count - 1) : 0;
+    const a = t0 + order * step, b = Math.min(t1, a + (t1 - t0) - stag), lift = p.depth * L;
+    const from = ({ drop: { z: lift + 420 }, slideL: { x: -560, z: lift }, slideR: { x: 560, z: lift }, rise: { z: lift - 360 },
+                    unfold: { rx: -88, z: lift }, pop: { s: 0.55, z: lift } })[style] || { z: lift + 420 };
+    const e = (style === "drop" || style === "pop") ? "outBack" : "inOutQuart";
+    return [ { t: t0, ...from, o: 0, f: 0, rect }, { t: a, ...from, o: 0, f: 0, rect },
+             { t: b, x: 0, z: lift, rx: 0, s: 1, o: 1, f: 0, rect, e } ];
+  },
+  resolve: (p, t0, t1, rect) => [ { t: t0, z: p.depth * SCENE.lift, f: 0, rect }, { t: t1, z: 0, f: 1, rect } ],
+  explode: (p, t0, t1, rect, L) => [ { t: t0, z: 0, f: 1, rect }, { t: t1, z: p.depth * L, f: 0, rect } ],
+  morph: (p, t0, t1, fromRect, toRect, arc = 60) => [
+    { t: t0, rect: fromRect }, { t: (t0 + t1) / 2, z: p.depth * SCENE.lift + arc }, { t: t1, z: p.depth * SCENE.lift, rect: toRect } ]
+};
+/* ---------- Living-element key helpers ---------- */
+const X = {
+  life: (t0, t1, at, extra = {}, d = 0.015) => [ { t: t0, o: 0, at, ...extra }, { t: t0 + d, o: 1, at, ...extra }, { t: t1 - d, o: 1, at, ...extra }, { t: t1, o: 0, at, ...extra } ],
+  // path: [[t, at], ...] cursor travels between anchors, fading in at the first and out at the last
+  path(pts, d = 0.012) {
+    const k = pts.map(([t, at], i) => ({ t, at, o: (i === 0 || i === pts.length - 1) ? 0 : 1 }));
+    k.splice(1, 0, { t: pts[0][0] + d, at: pts[0][1], o: 1 });
+    k.splice(k.length - 1, 0, { t: pts[pts.length - 1][0] - d, at: pts[pts.length - 1][1], o: 1 });
+    return k;
+  }
+};
+
+/* Demo choreography. Replace with the real beat sheet. */
+(function buildKeys() {
+  const L = SCENE.lift, ps = SCENE.pieces, ex = id => SCENE.extras.find(e => e.id === id);
+  const v1 = ps.filter(p => p.rects.v1).sort((a,b) => a.depth - b.depth || a.rects.v1.y - b.rects.v1.y || a.rects.v1.x - b.rects.v1.x);
+  ps.forEach(p => p.keys = []);
+  v1.forEach((p, i) => p.keys.push(...G.enter(p.enter || "drop", p, 0.02, 0.25, "v1", i, v1.length, L), ...G.resolve(p, 0.25, 0.40, "v1"),
+                                   G.rest(p, 0.47, "v1"), ...G.explode(p, 0.47, 0.52, "v1", L)));
+  ps.forEach(p => {
+    const has1 = !!p.rects.v1, has2 = !!p.rects.v2;
+    if (has1 && has2) p.keys.push(...G.morph(p, 0.52, 0.66, "v1", "v2"));
+    if (!has1 && has2) p.keys.push(...G.enter(p.enter || "pop", p, 0.56, 0.66, "v2", 0, 1, L));
+    if (has2) p.keys.push(...G.resolve(p, 0.70, 0.80, "v2"), G.rest(p, 1, "v2"));
+  });
+  // Collaboration while v1 assembles: a teammate "places" the cards
+  // Same cursor returns in the iterate beat to drag card B into its new slot (dx/dy nudges the arrow off the piece's center)
+  ex("kyle").keys  = [ ...X.path([[0.10, "cardA@.5,.5"], [0.17, "cardA@.5,.5"], [0.21, "cardB@.5,.5"], [0.24, "cardB@.5,.5"]]),
+                       ...X.path([[0.52, "cardB@.5,.5"], [0.66, "cardB@.5,.5"]]).map(q => ({ ...q, dx: 14, dy: 10 })) ];
+  // Review of v1: reviewer cursor + sticky note + comment pin (3 on screen at once)
+  ex("maya").keys  = X.path([[0.27, "page@.97,.95"], [0.33, "hero@.2,.55"], [0.38, "cardB@.93,.08"], [0.42, "cardB@.93,.08"]]);
+  ex("note1").keys = X.life(0.31, 0.47, "hero@.7,.04", { dx: 0, dy: -8 });   // anchor inside the piece, away from the stage edge
+  ex("pin1").keys  = [ { t: .37, o: 0, a: 0, at: "cardB@.95,.04" }, { t: .385, o: 1, a: 0, at: "cardB@.95,.04" }, { t: .405, o: 1, a: 1, at: "cardB@.95,.04" },
+                       { t: .455, o: 1, a: 1, at: "cardB@.95,.04" }, { t: .47, o: 0, a: 0, at: "cardB@.95,.04" } ];
+  // Iteration: selection box + live ruler + a cursor that drags the card across
+  ex("sel").keys   = X.life(0.50, 0.66, "cardB");
+  ex("rule").keys  = X.life(0.52, 0.68, "hero");
+  // Outcome: callout + avatar on the new chart, then chip + stamp
+  ex("call").keys  = X.life(0.67, 0.80, "chart@.5,0", { dx: 72, dy: -70 });
+  ex("jr").keys    = X.life(0.67, 0.80, "chart@.14,0", { dy: -12 });
+  ex("chip1").keys = X.life(0.82, 0.96, "cardA@.5,0", { dy: -10 });
+  ex("ok").keys    = X.life(0.88, 1.00, "page@.84,.92");
+})();
+
+/* =========================================================================
+   ENGINE
+   ========================================================================= */
+const E = {
+  linear: t => t, inQuad: t => t*t,
+  inOutCubic: t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2,
+  inOutQuart: t => t < .5 ? 8*t**4 : 1 - Math.pow(-2*t + 2, 4) / 2,
+  outBack: t => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); }
+};
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const smooth = (a, b, v) => { const u = clamp((v - a) / (b - a), 0, 1); return u*u*(3 - 2*u); };
+const PROPS = ["x","y","z","rx","rz","s","o","f","a","dx","dy"];
+
+// Sample keyframes: carry forward unset props, ease into each key. `rect` (or `at`) is a discrete prop that crossfades/interpolates.
+function sample(keys, t, defaults) {
+  const state = { ...defaults }, out = { ...defaults };
+  let prev = { t: -Infinity, ...defaults }, next = null;
+  for (const k of keys) {
+    if (k.t <= t) { Object.assign(state, k); prev = { ...state, t: k.t }; }
+    else { next = k; break; }
+  }
+  Object.assign(out, prev);
+  out.rectA = prev.rect; out.rectB = prev.rect; out.u = 0;
+  if (next && prev.t === -Infinity) {
+    out.rectA = out.rectB = next.rect || defaults.rect;      // before a first key: hold defaults, but keep geometry valid
+  } else if (next) {
+    const ease = E[next.e] || E.inOutCubic;
+    const u = ease(clamp((t - prev.t) / Math.max(1e-6, next.t - prev.t), 0, 1));
+    for (const k of PROPS) if (next[k] !== undefined) out[k] = lerp(prev[k] ?? defaults[k] ?? 0, next[k], u);
+    if (next.rect) { out.rectB = next.rect; out.u = u; }
+  }
+  return out;
+}
+const camAt = t => sample(SCENE.camera, t, { rx: 55, rz: -45, s: 0.7 });
+
+const world = document.getElementById("world"), stage = document.getElementById("stage"), gridEl = document.getElementById("grid");
+const nodes = new Map(), cur = new Map();
+const CAM = { rx: 0, rz: 0, inv: 1 };
+const mkRect = (p, name) => p.rects[name] || p.rects[Object.keys(p.rects)[0]];
+const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+/* ----- pieces ----- */
+const FACE = {   // placeholder front faces for the demo: [left%, top%, width%, height%, tone]  (d dark, m mid, l light, a accent)
+  nav: [[3,28,4,44,"d"],[58,40,7,20,"m"],[68,40,7,20,"m"],[78,40,7,20,"m"],[90,24,7,52,"a"]],
+  heading: [[0,8,72,24,"d"],[0,40,48,24,"d"],[0,76,36,8,"l"]],
+  card: [[0,0,100,46,"l"],[6,54,58,7,"d"],[6,68,84,4,"l"],[6,76,66,4,"l"],[6,87,26,7,"a"]],
+  chart: [[8,8,38,6,"d"],[8,24,12,64,"l"],[26,44,12,44,"m"],[44,32,12,56,"l"],[62,56,12,32,"m"],[80,40,12,48,"a"]]
+};
+SCENE.pieces.forEach(p => {
+  const el = document.createElement("div");
+  el.className = "piece"; el.dataset.kind = p.kind; el.setAttribute("aria-hidden", "true");
+  if (p.origin) el.style.transformOrigin = p.origin;
+  el.innerHTML = '<div class="face"></div><div class="outline"></div><div class="layer a"></div><div class="layer b"></div><div class="tag"></div>';
+  el.querySelector(".face").innerHTML = (FACE[p.kind] || []).map(([l,t,w,h,c]) => `<i class="${c}" style="left:${l}%;top:${t}%;width:${w}%;height:${h}%"></i>`).join("");
+  el.querySelector(".tag").textContent = p.label;
+  (p.skeleton || []).forEach(r => { const s = document.createElement("div"); s.className = "skel"; s.style.top = (r * 100) + "%"; el.querySelector(".outline").after(s); });
+  world.appendChild(el);
+  nodes.set(p.id, { el, face: el.querySelector(".face"), outline: el.querySelector(".outline"), tag: el.querySelector(".tag"), a: el.querySelector(".a"), b: el.querySelector(".b"), p });
+});
+
+/* ----- living elements ----- */
+function buildExtra(d) {
+  const el = document.createElement("div");
+  el.className = "ex ex-" + d.type + (d.tone ? " tone-" + d.tone : ""); el.setAttribute("aria-hidden", "true");
+  const b = document.createElement("div"); b.className = "body"; el.appendChild(b);
+  const X_ = { el, b, d };
+  switch (d.type) {
+    case "cursor":  b.innerHTML = `<svg class="cur" width="16" height="22" viewBox="0 0 16 22"><path d="M1 1v16l4.2-3.6 3 6.6 2.6-1.2-3-6.4H14z"/></svg><span class="flag">${esc(d.name)}</span>`; break;
+    case "pin":     b.innerHTML = `<div class="pin-dot">${esc(d.n ?? 1)}</div><div class="pin-bub">${d.author ? `<b>${esc(d.author)}</b>` : ""}${esc(d.text)}</div>`; X_.bub = b.querySelector(".pin-bub"); break;
+    case "note":    b.innerHTML = `<div class="note" style="--rot:${d.rot ?? -3}deg">${esc(d.text)}</div>`; break;
+    case "chip":    b.innerHTML = `<span class="chip">${esc(d.text)}</span>`; break;
+    case "avatar":  b.innerHTML = `<span class="av">${esc(d.initials)}</span>`; break;
+    case "stamp":   b.innerHTML = `<span class="stamp" style="--rot:${d.rot ?? -8}deg">${esc(d.text)}</span>`; break;
+    case "callout": el.insertAdjacentHTML("afterbegin", '<i class="dot"></i><i class="ln"></i>'); b.innerHTML = `<span class="clab">${esc(d.text)}</span>`;
+                    X_.ln = el.querySelector(".ln"); X_.lab = b.firstChild; break;
+    case "ruler":   el.innerHTML = `<i class="rl-line ${d.axis === "y" ? "y" : "x"}"></i><i class="rl-tick"></i><i class="rl-tick"></i><div class="rl-lbl"><span></span></div>`;
+                    X_.line = el.children[0]; X_.t1 = el.children[1]; X_.t2 = el.children[2]; X_.lbl = el.children[3]; X_.txt = X_.lbl.firstChild; break;
+    case "select":  el.innerHTML = '<i class="hd tl"></i><i class="hd tr"></i><i class="hd bl"></i><i class="hd br"></i><div class="sel-lbl"><span></span></div>';
+                    X_.lbl = el.lastChild; X_.txt = X_.lbl.firstChild; break;
+  }
+  world.appendChild(el);
+  d.keys.forEach(k => { if (k.at) k.rect = k.at; });          // `at` rides the engine's discrete-prop interpolation
+  return X_;
+}
+const EXS = (SCENE.extras || []).map(buildExtra);
+
+// billboard: counter-rotate against the camera and counter-scale so text stays flat to the screen at constant size
+const bb = (x, y, z, s = 1) => `translate3d(${x}px,${y}px,${z}px) rotateZ(${-CAM.rz}deg) rotateX(${-CAM.rx}deg) scale(${CAM.inv * s})`;
+function resolve(spec) {
+  if (!spec) return null;
+  const [id, a] = spec.split("@"), c = cur.get(id); if (!c) return null;
+  const [ax, ay] = a ? a.split(",").map(Number) : [0.5, 0.5];
+  // x,y = the anchor point; x0,y0 = the box's top-left (what rulers and selection boxes need)
+  return { x: c.x + ax * c.w, y: c.y + ay * c.h, x0: c.x, y0: c.y, z: c.z, w: c.w, h: c.h, lab: c.lab };
+}
+// Billboards float ~10 screen px above their anchor so an upright label never sinks into a tilted plane.
+// Anything anchored in the right half of the frame opens leftward, so bubbles and callouts never run off the stage edge.
+const lift = P => P.z + 10 * CAM.inv;
+const rightHalf = P => P.x > SCENE.frames[Object.keys(SCENE.frames)[0]].w * 0.55;
+const board = (X_, P, k) => { X_.el.style.transform = bb(P.x, P.y, lift(P), k.s); X_.b.style.transform = `translate(${k.dx}px,${k.dy}px)`; };
+const PLACE = {
+  cursor: board, chip: board, avatar: board, note: board, stamp: board,
+  pin(X_, P, k) {
+    const flip = rightHalf(P);
+    X_.el.style.transform = bb(P.x, P.y, lift(P), k.s); X_.bub.classList.toggle("flip", flip);
+    X_.bub.style.opacity = k.a; X_.bub.style.transform = `translateX(${(1 - k.a) * (flip ? 8 : -8)}px) scale(${0.92 + 0.08 * k.a})`;
+  },
+  callout(X_, P, k) {
+    X_.el.style.transform = bb(P.x, P.y, lift(P), k.s);
+    if (rightHalf(P)) k = { ...k, dx: -Math.abs(k.dx) };
+    const len = Math.hypot(k.dx, k.dy), ang = Math.atan2(k.dy, k.dx), draw = clamp(k.o * 1.8, 0, 1);
+    X_.ln.style.width = (len * draw) + "px"; X_.ln.style.transform = `rotate(${ang}rad)`;
+    X_.b.style.transform = `translate(${k.dx}px,${k.dy}px)`;
+    X_.lab.style.transform = k.dx < 0 ? "translate(-100%,-100%)" : "translate(0,-100%)"; X_.lab.style.opacity = clamp((k.o - 0.4) * 2.5, 0, 1);
+  },
+  ruler(X_, P, k) {
+    const d = X_.d, g = d.gap ?? 36, horiz = d.axis !== "y", len = horiz ? P.w : P.h;
+    X_.el.style.transform = `translate3d(${P.x0}px,${P.y0}px,${P.z + 3}px)`;
+    const L = X_.line.style, t1 = X_.t1.style, t2 = X_.t2.style;
+    if (horiz) {
+      L.left = "0"; L.top = -g + "px"; L.width = len + "px"; L.height = "0";
+      [[t1, 0], [t2, len]].forEach(([s, pos]) => { s.left = pos + "px"; s.top = `calc(${-g}px - 6px * var(--inv))`; s.width = "var(--sw)"; s.height = "calc(12px * var(--inv))"; });
+      X_.lbl.style.transform = bb(len / 2, -g, 0);
+    } else {
+      L.left = -g + "px"; L.top = "0"; L.height = len + "px"; L.width = "0";
+      [[t1, 0], [t2, len]].forEach(([s, pos]) => { s.top = pos + "px"; s.left = `calc(${-g}px - 6px * var(--inv))`; s.height = "var(--sw)"; s.width = "calc(12px * var(--inv))"; });
+      X_.lbl.style.transform = bb(-g, len / 2, 0);
+    }
+    X_.txt.textContent = d.text === "auto" || !d.text ? Math.round(len) + " px" : d.text;
+  },
+  select(X_, P, k) {
+    const pad = 6;
+    X_.el.style.transform = `translate3d(${P.x0 - pad}px,${P.y0 - pad}px,${P.z + 3}px)`;
+    X_.el.style.width = (P.w + pad * 2) + "px"; X_.el.style.height = (P.h + pad * 2) + "px";
+    X_.lbl.style.transform = bb(0, 0, 0);
+    X_.txt.textContent = X_.d.text || `${P.lab || ""} · ${Math.round(P.w)}×${Math.round(P.h)}`;
+  }
+};
+function placeExtra(X_, t) {
+  const d = X_.d, k = sample(d.keys, t, { o: 0, a: 0, dx: d.dx || 0, dy: d.dy || 0, s: 1, rect: d.keys[0].rect });
+  const A = resolve(k.rectA), B = resolve(k.rectB);
+  // Hidden means a clean slate, so element state is a pure function of t (no stale styles from earlier frames).
+  if (!A || !B || k.o < 0.01) { X_.el.style.cssText = "visibility:hidden"; return; }
+  const u = k.u, P = { x: lerp(A.x, B.x, u), y: lerp(A.y, B.y, u), x0: lerp(A.x0, B.x0, u), y0: lerp(A.y0, B.y0, u),
+                       z: lerp(A.z, B.z, u), w: lerp(A.w, B.w, u), h: lerp(A.h, B.h, u), lab: B.lab };
+  X_.el.style.visibility = "visible"; X_.el.style.opacity = k.o;
+  PLACE[d.type](X_, P, k);
+}
+
+/* ----- rendering ----- */
+function paintLayer(layer, p, name, box, opacity) {
+  const src = SCENE.frames[name]?.src, R = p.rects[name];
+  if (!src || !R || opacity <= 0.001) { layer.style.opacity = 0; return; }
+  const F = SCENE.frames[name], kx = box.w / R.w, ky = box.h / R.h;
+  layer.style.opacity = opacity;
+  layer.style.backgroundImage = `url(${src})`;
+  layer.style.backgroundSize = `${F.w * kx}px ${F.h * ky}px`;
+  layer.style.backgroundPosition = `${-R.x * kx}px ${-R.y * ky}px`;
+}
+const sections = [...document.querySelectorAll("#text section")];
+const hudTitle = document.getElementById("hud-title"), hudFill = document.getElementById("hud-fill");
+
+function render(t) {
+  const cam = camAt(t);
+  const F = SCENE.frames[Object.keys(SCENE.frames)[0]];
+  const ws = Math.min(stage.clientWidth / F.w, stage.clientHeight / F.h) * 0.92 * cam.s / 0.8;
+  CAM.rx = cam.rx; CAM.rz = cam.rz; CAM.inv = 1 / ws;
+  world.style.width = F.w + "px"; world.style.height = F.h + "px";
+  world.style.setProperty("--inv", CAM.inv.toFixed(4));
+  world.style.transform = `translate(-50%,-50%) scale(${ws}) rotateX(${cam.rx}deg) rotateZ(${cam.rz}deg)`;
+  const camF = smooth(25, 4, cam.rx);                     // fidelity allowed by camera angle
+  gridEl.style.opacity = SCENE.grid ? 1 - camF : 0;
+  nodes.forEach(({ el, face, outline, tag, a, b, p }) => {
+    const k = sample(p.keys, t, { x:0, y:0, z:0, rx:0, rz:0, s:1, o:0, f:0, rect: Object.keys(p.rects)[0] });
+    const A = mkRect(p, k.rectA), B = mkRect(p, k.rectB);
+    const box = { x: lerp(A.x, B.x, k.u), y: lerp(A.y, B.y, k.u), w: lerp(A.w, B.w, k.u), h: lerp(A.h, B.h, k.u) };
+    const f = Math.min(k.f, camF);
+    el.style.width = box.w + "px"; el.style.height = box.h + "px";
+    el.style.opacity = k.o;
+    el.style.transform = `translate3d(${box.x + k.x}px,${box.y + k.y}px,${k.z}px) rotateX(${k.rx}deg) rotateZ(${k.rz}deg) scale(${k.s})`;
+    cur.set(p.id, { x: box.x + k.x, y: box.y + k.y, z: k.z, w: box.w * k.s, h: box.h * k.s, lab: p.label });
+    const hasImg = !!(SCENE.frames[k.rectA]?.src || SCENE.frames[k.rectB]?.src);
+    outline.style.opacity = 1 - f * (hasImg ? 0.95 : 0.85);   // blueprint outline gives way to the real design
+    face.style.opacity = hasImg ? 0 : f;                      // demo face only when there is no source image
+    tag.style.opacity = f < 0.3 ? 1 - f / 0.3 : 0;
+    paintLayer(a, p, k.rectA, box, f * (1 - k.u));
+    paintLayer(b, p, k.rectB, box, k.rectB === k.rectA ? 0 : f * k.u);
+    if (k.rectB === k.rectA) paintLayer(a, p, k.rectA, box, f);
+  });
+  EXS.forEach(X_ => placeExtra(X_, t));
+  const bi = SCENE.beats.findIndex(x => t >= x.range[0] && t < x.range[1]);
+  sections.forEach(s => { const beat = SCENE.beats.find(x => x.id === s.dataset.beat); s.classList.toggle("active", !!beat && t >= beat.range[0] && t < beat.range[1]); });
+  hudTitle.textContent = bi >= 0 ? `${String(bi + 1).padStart(2, "0")} / ${String(SCENE.beats.length).padStart(2, "0")}   ${SCENE.beats[bi].title.toUpperCase()}` : "";
+  hudFill.style.transform = `scaleX(${t})`;
+}
+
+/* Scroll -> progress. Scroll position is the ONLY clock. */
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const layout = document.querySelector(".layout");
+function progress() {
+  const max = layout.offsetHeight - innerHeight;
+  return clamp(scrollY / Math.max(1, max), 0, 1);
+}
+let want = -1, raf = 0;
+function tick() { raf = 0; let t = progress();
+  if (reduce) { const anchors = SCENE.beats.map(b => b.snap ?? b.range[0]); t = anchors.reduce((c, a) => Math.abs(a - t) < Math.abs(c - t) ? a : c, anchors[0]); }
+  if (t !== want) { want = t; render(t); } }
+const req = () => { if (!raf) raf = requestAnimationFrame(tick); };
+addEventListener("scroll", req, { passive: true }); addEventListener("resize", () => { want = -1; req(); });
+
+/* Total scroll distance: text sections set the height; pad to SCENE.scrollVh. */
+const spacer = document.createElement("div");
+spacer.style.height = Math.max(0, SCENE.scrollVh - SCENE.beats.length * 100) + "vh";
+document.getElementById("text").appendChild(spacer);
+
+/* Snap mode: invisible anchors the browser can snap to. */
+if (SCENE.mode === "snap") {
+  document.documentElement.style.scrollSnapType = "y proximity";
+  SCENE.beats.forEach(b => { const s = document.createElement("div"); s.style.cssText =
+    `position:absolute;left:0;width:1px;height:1px;top:calc(${b.snap ?? b.range[0]} * (100% - 100vh));scroll-snap-align:start`; layout.style.position = "relative"; layout.appendChild(s); });
+}
+/* Theme toggle (also follows the OS by default) */
+document.getElementById("theme").addEventListener("click", () => {
+  const root = document.documentElement, now = root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  root.dataset.theme = now === "dark" ? "light" : "dark";
+});
+req();
+</script>
+</body>
+</html>
