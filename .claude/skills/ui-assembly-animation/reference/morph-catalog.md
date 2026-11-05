@@ -84,3 +84,17 @@ Ideas to compose from these (propose, don't impose):
 - **Approval beat:** the stamp lands on the final resolve with a tiny scale punch.
 
 Parameters not in the engine yet (confirm with the user before building): hand-drawn scribble underline, a presence-avatar stack, typing indicator in a bubble, emoji reactions, laser pointer trail, a "version" tag that flips v1 -> v2.
+
+
+## UI morph (no blueprint) and microinteractions
+
+Use when the user chose "UI morph only" for a transition. Camera stays flat; everything stays real. Engine column as above.
+
+| Name | Motion | Best for | Engine |
+|---|---|---|---|
+| Flat glide | Piece interpolates its rect to the next screen while the old and new crops cross-fade | Panels resizing, layout shifts | native `G.flat` |
+| Panel fold | One piece shrinks into a narrow panel while its neighbour widens to fill the gap | Docking a chat, sidebar or inspector | native (two `G.flat` pieces) |
+| Content stagger-in | New content rises 18px and fades in, 12ms apart, over a clean base image | Filling a freshly opened panel | compose (erased-rect base image + `rise` keys) |
+| Cursor tap | Cursor glides to a target, scale dips to ~0.78 and returns, then the change begins | Triggering any state change | compose (separate cursor piece; fingertip offset measured from its image) |
+| Hover reveal | Tooltip pops in after a cursor arrives on a target | Showing a label or hint | native `enter: "pop"` |
+| Exit | Removed piece drops beneath the stack and fades | Anything deleted by the change | native `G.exit` |

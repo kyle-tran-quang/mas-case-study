@@ -137,7 +137,7 @@ Layer the generators per beat so changing a beat's range retunes everything. Ord
 
 ## Timing guidance
 
-- Iteration span: 0.30-0.45 of total progress for a 3-iteration story. Distance in px: roughly 450-700vh per iteration for cinematic, 250-400vh for punchy.
+- Iteration span: 0.30-0.45 of total progress for a 3-iteration story. Scroll distance: **portfolio/recruiter default is ~100vh per story beat (about 300-340vh for 3 beats; <= ~100vh between adjacent text anchors)**. Only go to 250-400vh per iteration when the user explicitly wants a cinematic pace.
 - Stagger: spread the staggered pieces over 40-60% of the beat length, not all of it, so the last piece still has time to settle.
 - Resolve hold: >= 12% of the iteration's span.
 - Easing: `inOutCubic` for camera; `outBack` (small overshoot, 1.2-1.4) for lego drops; `inOutQuart` for large travel; `linear` only for continuous orbit.

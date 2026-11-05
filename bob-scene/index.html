@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IBM Bob concept 1: assembly scene</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="scene.css">
+<style>
+  /* Composer page: split layout + text column. The right half is just one rendering of STORY; restyle freely. */
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); transition: background-color .45s, color .45s; }
+  .layout { display: grid; grid-template-columns: 1fr 1fr; position: relative; }
+  .stage-col { position: sticky; top: 0; height: 100vh; }
+  .text-col { position: relative; padding: 0 6vw; }
+  .text-col section { position: absolute; left: 6vw; right: 6vw; transform: translateY(-50%); }
+  .text-col h2 { font-size: clamp(28px, 3vw, 44px); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 12px; }
+  .text-col p { color: var(--muted); max-width: 46ch; margin: 0; }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    .stage-col { height: 55vh; z-index: 1; }
+    .text-col section { left: 24px; right: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+  <div class="stage-col"><div id="scene" style="width:100%;height:100%"></div></div>
+  <div class="text-col" id="text"></div>
+</div>
+
+<script src="story.js"></script>
+<script src="assembly-engine.js"></script>
+<script src="scene-data.js"></script>
+<script>
+(function () {
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const layout = document.getElementById("layout"), text = document.getElementById("text");
+  const vh = STORY.scrollVh, maxVh = vh - 100;          // scrollable distance in vh = total minus one viewport
+  layout.style.height = vh + "vh";
+
+  // Right half: one section per beat, centred in the viewport when scroll reaches the beat's snap anchor.
+  STORY.beats.forEach(b => {
+    const s = document.createElement("section");
+    s.dataset.beat = b.id; s.style.top = `calc(${(b.snap ?? b.range[0]) * maxVh}vh + 50vh)`;
+    s.innerHTML = `<h2></h2><p></p>`;
+    s.children[0].textContent = b.heading; s.children[1].textContent = b.body;
+    text.appendChild(s);
+  });
+  const sections = [...text.children];
+
+  const scene = AssemblyScene.mount(document.getElementById("scene"), { scene: SCENE, story: STORY });
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const anchors = STORY.beats.map(b => b.snap ?? b.range[0]);
+
+  const progress = () => clamp(scrollY / Math.max(1, layout.offsetHeight - innerHeight), 0, 1);   // scroll is the ONLY clock
+  let want = -1, raf = 0;
+  function tick() {
+    raf = 0; let t = progress();
+    if (reduce) t = anchors.reduce((c, a) => Math.abs(a - t) < Math.abs(c - t) ? a : c, anchors[0]);   // reduced motion: jump between key poses
+    if (t === want) return;
+    want = t;
+    const { beat } = scene.render(t);
+    const cur = STORY.beats.find(b => b.id === beat);
+    document.documentElement.dataset.theme = cur ? cur.theme : "light";        // page follows the beat theme, never the OS
+    sections.forEach(s => s.classList.toggle("active", s.dataset.beat === beat));
+  }
+  const req = () => { if (!raf) raf = requestAnimationFrame(tick); };
+  addEventListener("scroll", req, { passive: true });
+  addEventListener("resize", () => { want = -1; req(); });
+
+  // Soft snap to beat anchors (STORY.mode === "snap")
+  if (STORY.mode === "snap") {
+    document.documentElement.style.scrollSnapType = "y proximity";
+    anchors.forEach(a => {
+      const d = document.createElement("div");
+      d.style.cssText = `position:absolute;left:0;width:1px;height:1px;top:calc(${a} * (100% - 100vh));scroll-snap-align:start`;
+      layout.appendChild(d);
+    });
+  }
+  req();
+})();
+</script>
+</body>
+</html>

@@ -30,12 +30,14 @@ Skip anything the user already answered; acknowledge what you know. Ask the rest
 1. **Sources**: Provide the design for each iteration (PNG, Figma export/link, screenshot, PDF page). How many iterations, in order? Any desktop vs. mobile variants?
 2. **Story per iteration**: For each iteration, what was the problem or insight that drove it, and what changed? (This becomes the choreography, so specifics matter: "merged three filters into one bar", "moved pricing above the fold".)
 3. **Output placement**: Which project/file should the scene live in? Is there an existing page, framework, or CSS I must match (React, Astro, plain HTML)? Fixed header height? Breakpoints that matter?
-4. **Scroll behavior**: Continuous scrub, snapping to beats, or hybrid (continuous within a beat, soft snap between beats)? How much scroll distance per iteration (short and punchy vs. slow and cinematic)?
-5. **Theme**: Confirm light (dark grey/black lines on light grey) and dark (light lines on dark) both ship, and how it switches (OS preference, site toggle, both). Any accent color for highlights?
+4. **Scroll behavior**: Continuous scrub (default, seamless), snapping to beats, or hybrid? Who is the audience? For portfolios read by busy recruiters, default to **short and punchy** (see the scroll budget rule in Phase 3) and say so.
+5. **Theme**: Confirm light (dark grey/black lines on light grey) and dark (light lines on dark) both ship. Default is **per-beat theme set in `story.js`, independent of the OS**; ask only if they want a toggle too. Any accent color for highlights?
 6. **Granularity**: Default is sections and major components only (cards, tables, big headings, key numbers, nav, hero media). Paragraphs and body copy are left out. Confirm, and note anything special to always include or exclude.
 7. **Range of motion**: Preferred intensity (subtle, balanced, dramatic)? Any motion they dislike (spin that is too fast, overshoot, camera shake)?
 8. **Living layer** (collaboration, feedback, annotation): The scene can show collaborators' cursors, comment pins, sticky notes, callouts, live rulers, selection boxes, metric chips, avatars and an approval stamp. Which of these fit the story? For each iteration, what real feedback, research quote, person or metric belongs on screen? (Never invent names, quotes or numbers. If the user has none, leave that element out or mark it as placeholder.)
-9. **Reduced motion**: Fallback preference (snap between key poses without interpolation is the default suggestion; confirm).
+9. **Blueprint or not, per transition.** Do not assume every transition uses the isometric blueprint. For each transition (including the very first one) ask: *full blueprint* (explode to outlines, reassemble), *light blueprint* (brief lift, then morph), or *UI morph only* (stay flat and real; the layout glides and cross-fades into the next screen)? Recommend UI morph only when the change is small or incremental (a panel resizes, content swaps), and blueprint when the structure itself changes or a first impression is needed. Record the choice per beat in the beat sheet.
+10. **Microinteractions**: Ask what small interactions should appear and when, offering concrete options with a recommendation per beat: cursor travel to a target, click or tap (scale dip), hover reveal (tooltip pop), toggle or tab switch, panel resize or fold, content stagger-in, focus ring, typing, drag. Tie each to something visible in the designs (a hovered state, a tooltip, a cursor already drawn in the Figma frame) and never invent UI that is not in the source. Ask whether microinteractions should be exported as separate pieces (e.g. the cursor) so they can be reused.
+11. **Reduced motion**: Fallback preference (snap between key poses without interpolation is the default suggestion; confirm).
 
 **Gate 0**: restate the plan in 5-8 lines. Get a yes.
 
@@ -50,6 +52,8 @@ For every uploaded design:
 5. **Cross-iteration matching**: for iteration N+1, match each component to iteration N (same / moved / resized / restyled / merged / split / new / removed). Reuse the same `id` when it is the same thing. This match table drives the morphs.
 
 Present the result as a compact table per iteration plus the match table. Flag every uncertain item.
+
+6. **Rationale (write it, then flag it).** After reading each design, draft a short design rationale: who it is for, what problem the structure solves, and why the main choices (hierarchy, grouping, what was left out) follow from that, using only what is visible in the design plus the user's story. If the user asks you to make it up, write it plausibly but without invented metrics, quotes or names, label it DRAFT in `story.js`, and let them replace it. This rationale becomes the right-hand copy and the justification for each motion.
 
 **Questions to ask here (never skip):**
 - Segmentation doubts: "Is this one card or three? Should the stat row be one piece or four?"
@@ -78,6 +82,8 @@ Build the timeline as **beats**. A beat is a named span of scroll progress with 
 
 **Score every beat on three axes** before proposing it: technical (derived from the real design, with true measurements and names), aesthetic (rhythm, one focal motion, a satisfying landing), and story (matches a sentence in the text column). A beat that fails any axis gets changed or cut. See the rubric in `directions.md`.
 
+**The blueprint is optional per transition** (see intake question 9). Only use the arc below for transitions the user chose to show as blueprint. For a *UI morph* transition, keep the camera flat (`rx = rz = 0`), keep `f = 1`, use `G.flat` to interpolate each piece's rect, and let the engine cross-fade the old and new crops. Reveal new content with a short stagger (`y` offset and `o`), and let a microinteraction (cursor tap) trigger the change.
+
 Default iteration arc (adapt to the user's story, do not impose it):
 
 1. **Blueprint**: pieces float apart in isometric, outlines only.
@@ -90,6 +96,7 @@ Default iteration arc (adapt to the user's story, do not impose it):
 Rules for good choreography:
 - Every motion must be justified by the story the user gave. If a piece moves, the text beside it should explain why.
 - One idea per beat. Do not move everything at once; stagger by depth and reading order (typically 40-90ms of progress-equivalent offset).
+- **Scroll budget (portfolio default).** Busy readers must not have to scroll much. Keep the distance between consecutive story sentences (snap anchors of adjacent beats) to **about 100vh or less**, and total `scrollVh` to roughly **100vh x number of beats** (e.g. 3 beats = ~300-340vh). Never go above that unless the user explicitly asks for a cinematic pace. If a draft feels long, cut beats or shorten holds before adding scroll. Compress motion into fewer, shorter ranges rather than stretching the page.
 - Keep the camera orbit continuous across beats (no sudden direction flips) and cap rotation speed.
 - The front-view hold must be long enough to actually read the design (at least ~12% of an iteration's scroll span).
 - Each beat has one hero motion and at most two supporting motions. Everything else is still.
@@ -103,10 +110,11 @@ Rules for good choreography:
 ### Phase 4: Build
 
 1. Prepare assets: crop each component from its iteration image into `assets/<iteration>/<id>.png` at 2x if the source allows. Keep file sizes sane (optimize/convert to WebP when appropriate and confirm the user is fine with that).
+   For a UI morph, a full-frame crop would show stale content under the new screen. Derive a **clean base image**: copy the destination screenshot and erase only the rects of content that will animate in as separate pieces (fill with the sampled panel color), then verify programmatically that no pixel outside those rects changed. Sample colors from the PNG, do not eyeball them. Small assets that travel (a cursor) are exported separately and referenced with a per-rect `img`.
 2. Copy `assets/scene-template.html` into the project and fill the `SCENE` object: reference frames, components, iterations, beats, camera keys. Keep data and engine separate so the user can retune timing without touching the engine.
 3. Implement scroll mapping: a tall track element with the stage sticky at the left half; progress from scroll position of the track. Snap mode uses invisible sentinels at beat anchors with CSS `scroll-snap`; continuous mode uses none. Match what was chosen at Gate 0.
-4. Connect the right-hand text: each text section carries `data-beat="<beat-id>"` so layout and animation stay in sync. Do not write the user's copy; leave placeholder blocks unless asked.
-5. Themes: light and dark through CSS variables (`--bg`, `--line`, `--line-faint`, `--fill`, `--accent`), driven by `prefers-color-scheme` and `[data-theme]`.
+4. Structure the output as two exportable halves joined by one source of truth, `story.js`. See `reference/story-contract.md` (reference implementation: `bob-scene/`). Each text section carries `data-beat="<beat-id>"`. Use the rationale from Phase 1 as the copy (marked DRAFT) unless the user supplies their own.
+5. Themes: light and dark through CSS variables (`--bg`, `--line`, `--line-faint`, `--fill`, `--accent`). The theme is chosen **per beat** (`beat.theme` in `story.js`) and is independent of the OS; do not use `prefers-color-scheme`.
 6. Performance: transform/opacity only, `will-change` on moving pieces, no layout thrash, one `requestAnimationFrame` loop that runs only while progress changes. Test with 40+ pieces.
 7. Accessibility: `prefers-reduced-motion` -> jump between key poses at beat anchors; stage gets an `aria-label` summarizing the story; decorative layers `aria-hidden`; text half remains the accessible content.
 8. Mobile: confirm intent first. Default suggestion is stage pinned on top half, text below, same scroll mapping. Ask before choosing.
@@ -140,7 +148,8 @@ Do both the visual pass and the measured checks. Screenshots catch what looks wr
 | File | Purpose |
 |---|---|
 | `reference/directions.md` | Seven creative directions, the technical/aesthetic balance rubric, how to mix them, and a casting guide for living elements |
+| `reference/story-contract.md` | The file split (story / scene data / engine / css), the per-beat theme rule, and how to embed either half alone |
 | `reference/choreography.md` | Piece, living-element, camera and beat schema; entrance styles; generators; timing; fidelity rules; beat sheet format |
-| `reference/morph-catalog.md` | Motion menu (assembly, camera, disassembly, morphs by change type, living elements) with an Engine column showing what is native vs. needs custom code |
+| `reference/morph-catalog.md` | Motion menu (assembly, camera, disassembly, morphs by change type, living elements, UI morph and microinteractions) with an Engine column showing what is native vs. needs custom code |
 | `assets/scene-template.html` | Self-contained scroll-driven engine with split layout, light/dark themes, drafting grid, constant-size strokes and labels, and a working two-iteration demo with the full living layer |
 | `examples/worked-example.md` | A complete sample run: intake answers, component tree, match table, direction choice, beat sheet |
