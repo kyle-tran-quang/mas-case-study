@@ -229,7 +229,10 @@
   };
   function autoFrame(ts) {
     A.raf = 0;
-    if (A.state === "playing") { const u = clamp((ts - A.t0) / AUTO.durationMs, 0, 1); setP(-(Math.cos(Math.PI * u) - 1) / 2); if (u >= 1) finishAuto(); }
+    if (A.state === "playing") {
+      const r = clamp((ts - A.t0) / AUTO.rampMs, 0, 1), e = 1 - Math.pow(1 - r, 3);        // the held page glides from `at` to `holdAt`
+      A.lockY = yAt(AUTO.at + (AUTO.holdAt - AUTO.at) * e); scrollTo({ top: A.lockY, behavior: "instant" });
+      const u = clamp((ts - A.t0) / AUTO.durationMs, 0, 1); setP(-(Math.cos(Math.PI * u) - 1) / 2); if (u >= 1) finishAuto(); }
     else if (A.state === "skipping") { const u = clamp((ts - A.t0) / AUTO.skipMs, 0, 1); setP(A.from + (1 - A.from) * (1 - Math.pow(1 - u, 3))); if (u >= 1) finishAuto(); }
     paint(shown);
     if (A.state === "playing" || A.state === "skipping") A.raf = requestAnimationFrame(autoFrame);

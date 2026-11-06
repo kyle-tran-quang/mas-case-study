@@ -57,7 +57,7 @@
     bridge: { cue: [380, 398], diagramOut: [434, 454], landChrome: [438, 454], landForm: [440, 456] },
     notes: { start: 466, step: 2, len: 6, fadeOut: [503, 509] },     // fade in on the landed v1, stay pinned over the auto-scrolling form, fade out as the morph begins
     // ---- Act 2.3. v1 rests 456-509 (the form auto-scrolls from AUTO_AT, see STORY.auto) | v2 rests 544-575 | v3 rests 618-650. v3 gets 43vh of motion (tilt+explode 14, travel 13, resolve+flatten 16).
-    AUTO_AT: 490,                                    // the scroll position where v1's form starts scrolling itself: on the v1 text anchor, so the page is held with the text centred
+    AUTO_AT: 456, HOLD_AT: 490,                                  // the form starts scrolling itself the moment v1 has landed (456); the held page then glides on to HOLD_AT (the v1 text anchor) so the notes fade in and the text centres while it scrolls
     v2: { morph: [509, 544], peek0: 527, peekStep: 4, peekLen: 10 },
     v3: { D: [575, 589, 602, 618], illStart: 581 }   // explode+tilt, travel, resolve start, resolve end
   };
@@ -72,7 +72,7 @@ window.STORY = {
   // v1's form scrolls itself once the scroll position reaches `at` (the page is held there). A fresh wheel / key / touch during it skips to the end, then scrolling continues into v2.
   //   graceMs   input is swallowed this long after it starts, so trackpad momentum that carried the reader here does not skip it at once.
   //   resetVh   scrolling back above `at` by this much re-arms it (so it replays when the reader comes back down).
-  auto: { at: f(TIMING.AUTO_AT), durationMs: 8000, skipMs: 300, graceMs: 700, resetVh: 6 },
+  auto: { at: f(TIMING.AUTO_AT), holdAt: f(TIMING.HOLD_AT), rampMs: 2600, durationMs: 8000, skipMs: 300, graceMs: 700, resetVh: 6 },
   smoothing: 140,             // ms. The scene eases toward the scroll position (time constant) so the shorter scroll doesn't feel abrupt. 0 = 1:1 with scroll.
   mode: "continuous",         // "continuous" scrubs seamlessly with scroll; "snap" adds soft snapping to beat.snap anchors
   data: {
