@@ -1,0 +1,48 @@
+/* M-GOAT questionnaire loading component. Everything is scoped under .mgql-* so it can drop into any page. */
+/* Stage: owns the page background. Carbon grey 10 (#f4f4f4) -> grey 90 (#262626), timed from JS to the reveal phase.
+   The skill's overlay is appended to <body>, so it keeps its default (light-surface) dot colours, which suit the grey 10 start. */
+.mgql-stage {
+  --mgql-bg-delay: 0ms; --mgql-bg-duration: 1000ms;
+  display: grid; place-items: center; width: 100%; height: 100%; min-height: 100vh;
+  background: #f4f4f4;
+  transition: background-color var(--mgql-bg-duration) var(--mgql-bg-delay) cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mgql-stage[data-state="done"] { background: #262626; }
+@media (prefers-reduced-motion: reduce) { .mgql-stage { transition: none; } }
+
+.mgql-app {
+  --mgql-bg: #262626; --mgql-side: #393939; --mgql-row: #393939; --mgql-text: #f4f4f4; --mgql-blue: #78a9ff;
+  position: relative; display: grid; grid-template-columns: 34% 1fr; width: 100%; height: 100%; min-height: 640px;
+  transform: scale(var(--mgql-scale, 0.7)); transform-origin: center;   /* laid out at full size, then scaled: nothing is trimmed */
+  background: var(--mgql-bg); color: var(--mgql-text); overflow: hidden; box-sizing: border-box;
+  font: 400 14px/1.3 "IBM Plex Sans", system-ui, sans-serif;
+}
+.mgql-app *, .mgql-app *::before, .mgql-app *::after { box-sizing: border-box; }
+
+.mgql-side { position: relative; background: var(--mgql-side); padding: 38px 36px 0; display: flex; flex-direction: column; }
+.mgql-logo { width: 32px; height: 32px; display: block; }
+.mgql-brand { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 16px; font-size: 14px; line-height: 18px; }
+.mgql-brand b { font-weight: 600; display: block; }
+.mgql-brand small { font-size: 12px; color: var(--mgql-blue); line-height: 23px; }
+.mgql-headline { margin-top: 198px; }
+.mgql-headline h1 { margin: 0; font: 300 48px/48px "IBM Plex Serif", Georgia, serif; letter-spacing: -.5px; max-width: 406px; }
+.mgql-headline p { margin: 16px 0 0; font-size: 14px; line-height: 20px; }
+.mgql-ibm { margin: auto 0 47px; font: 600 20px/20px "IBM Plex Mono", monospace; letter-spacing: -1px; color: #4589ff; }
+.mgql-art { margin: 0 -36px; height: 322px; flex: none; background-position: center; background-size: cover; background-repeat: no-repeat; }
+
+.mgql-main { position: relative; padding: 40px 0 0; display: flex; justify-content: center; overflow: hidden; }
+.mgql-form { width: 634px; max-width: 100%; }
+.mgql-bar { height: 4px; background: #525252; margin-top: 14px; }
+.mgql-bar i { display: block; width: 29%; height: 100%; background: #a6c8ff; }
+.mgql-eyebrow { display: flex; align-items: center; gap: 16px; margin-top: 46px; font: 500 10px/18px "IBM Plex Mono", monospace; letter-spacing: 1.6px; text-transform: uppercase; }
+.mgql-eyebrow::after { content: ""; flex: 1; height: 1px; background: #525252; }
+.mgql-q { display: flex; justify-content: space-between; margin: 24px 0 22px; }
+.mgql-q h2 { margin: 0; font: 600 18px/25px "IBM Plex Sans", sans-serif; width: 408px; }
+.mgql-info { width: 28px; height: 28px; border-radius: 50%; background: var(--mgql-row); display: grid; place-items: center; }
+.mgql-info svg { width: 14px; height: 14px; }
+.mgql-opts { display: flex; flex-direction: column; gap: 8px; }
+.mgql-opt { display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 18px; background: var(--mgql-row); font-size: 14px; }
+.mgql-box { width: 16px; height: 16px; border: 1px solid var(--mgql-text); flex: none; }
+.mgql-q2 { margin-top: 36px; }
+
+.mgql-replay { position: fixed; right: 16px; bottom: 16px; z-index: 50; font: 600 12px "IBM Plex Sans", sans-serif; color: #161616; background: #f4f4f4; border: 0; padding: 10px 16px; cursor: pointer; }
