@@ -1,15 +1,15 @@
 ---
 name: ui-assembly-animation
-description: Build a scroll-driven showcase animation that tells the story of UI design iterations. Analyzes uploaded final designs (PNG, Figma export, screenshot), derives a clean outlined isometric blueprint from the real components, asks questions instead of assuming, then assembles, rotates, disassembles and morphs the UI between iterations, resolving to the exact final design in front view. Output is a self-contained HTML/CSS/JS scene where scroll is the only timeline control. Use for case study hero animations, iteration storytelling, and "how this UI was built" visuals.
+description: Build a scroll-driven showcase animation that tells the story of UI design iterations. Analyzes uploaded final designs (PNG, Figma export, screenshot), derives a clean outlined isometric blueprint from the real components, asks questions instead of assuming, then assembles, rotates, disassembles and morphs the UI between iterations, resolving to the exact final design in front view. Motion timing is designed around the person scrolling (reading time, rests, hero motion, scroll budget) and checked with a pacing audit. Output is a self-contained HTML/CSS/JS scene where scroll is the only timeline control. Use for case study hero animations, iteration storytelling, and "how this UI was built" visuals.
 ---
 
 # UI Assembly Animation
 
 You build a **scroll-controlled storytelling animation**: a UI is assembled from outlined blueprint pieces in isometric 3D, rotates to a flat front view that is pixel-faithful to the user's final design, then comes apart and reassembles (or morphs) into the next iteration.
 
-The animation sits on the **left half** of a split-screen case study page. The **right half** is the user's text. Scroll position is the **only** timeline control. There is no autoplay, no timers, no play button.
+The animation sits on the **left half** of a split-screen case study page. The **right half** is the user's text, set in Mikado Regular 32px with an eyebrow on the first section only; the left stage has a light grey fill (see `reference/story-contract.md` rule 5). Scroll position is the **only** timeline control. There is no autoplay, no timers, no play button.
 
-The purpose is visual aesthetics and narrative: *why this iteration exists and what changed*, not documentation of every element.
+The purpose is visual aesthetics and narrative: *why this iteration exists and what changed*, not documentation of every element. It has to **feel right to the person scrolling**: tight enough that no scroll is wasted, smooth enough that every motion can be followed and every sentence can be read. That is a design problem with numbers, covered by `reference/pacing.md`.
 
 ## Non-negotiable rules
 
@@ -18,6 +18,7 @@ The purpose is visual aesthetics and narrative: *why this iteration exists and w
 3. **The front view is the real design.** At the end of every assembly, the user's uploaded image (cropped per component) is what shows. Never redraw or "approximate" the final look.
 4. **Scroll is the sole clock.** Scene state is a pure function of scroll progress `p in [0,1]`. Scrolling backward must play the animation exactly in reverse.
 5. **Low fidelity in 3D, high fidelity in front view.** Outlines, thin strokes, subtle fills, tiny labels while in blueprint/isometric. Fidelity cross-fades up only as a piece settles into the front view.
+6. **Pace for the viewer, with numbers.** Every duration, rest and stagger is chosen from the viewer's side (reading time, eye-tracking, scroll speed), written down with a reason in a pacing worksheet, and checked with `assets/pacing-audit.js`. Text anchors always land on a still stage. "It looked right" is not a reason until it has been measured and looked at.
 
 ## Workflow
 
@@ -30,10 +31,10 @@ Skip anything the user already answered; acknowledge what you know. Ask the rest
 1. **Sources**: Provide the design for each iteration (PNG, Figma export/link, screenshot, PDF page). How many iterations, in order? Any desktop vs. mobile variants?
 2. **Story per iteration**: For each iteration, what was the problem or insight that drove it, and what changed? (This becomes the choreography, so specifics matter: "merged three filters into one bar", "moved pricing above the fold".)
 3. **Output placement**: Which project/file should the scene live in? Is there an existing page, framework, or CSS I must match (React, Astro, plain HTML)? Fixed header height? Breakpoints that matter?
-4. **Scroll behavior**: Continuous scrub (default, seamless), snapping to beats, or hybrid? Who is the audience? For portfolios read by busy recruiters, default to **short and punchy** (see the scroll budget rule in Phase 3) and say so.
+4. **Scroll behavior and audience**: Continuous scrub (default, seamless), snapping to beats, or hybrid? Who is the audience, and how will they read it (skim in 30 seconds, or study)? For portfolios read by busy recruiters, default to **short and punchy** (see the scroll budget rule in Phase 3) and say so. Also ask about the copy: roughly how many words per beat? Reading time sets how long each rest has to be (`reference/pacing.md`).
 5. **Theme**: Confirm light (dark grey/black lines on light grey) and dark (light lines on dark) both ship. Default is **per-beat theme set in `story.js`, independent of the OS**; ask only if they want a toggle too. Any accent color for highlights?
 6. **Granularity**: Default is sections and major components only (cards, tables, big headings, key numbers, nav, hero media). Paragraphs and body copy are left out. Confirm, and note anything special to always include or exclude.
-7. **Range of motion**: Preferred intensity (subtle, balanced, dramatic)? Any motion they dislike (spin that is too fast, overshoot, camera shake)?
+7. **Range of motion and feel**: Preferred intensity (subtle, balanced, dramatic)? Any motion they dislike (spin that is too fast, overshoot, camera shake)? Where should it feel *brisk* and where *lingering*? (Default: brisk builds, lingering front-view rests.) Any reference animation whose pacing they love or hate?
 8. **Living layer** (collaboration, feedback, annotation): The scene can show collaborators' cursors, comment pins, sticky notes, callouts, live rulers, selection boxes, metric chips, avatars and an approval stamp. Which of these fit the story? For each iteration, what real feedback, research quote, person or metric belongs on screen? (Never invent names, quotes or numbers. If the user has none, leave that element out or mark it as placeholder.)
 9. **Blueprint or not, per transition.** Do not assume every transition uses the isometric blueprint. For each transition (including the very first one) ask: *full blueprint* (explode to outlines, reassemble), *light blueprint* (brief lift, then morph), or *UI morph only* (stay flat and real; the layout glides and cross-fades into the next screen)? Recommend UI morph only when the change is small or incremental (a panel resizes, content swaps), and blueprint when the structure itself changes or a first impression is needed. Record the choice per beat in the beat sheet.
 10. **Microinteractions**: Ask what small interactions should appear and when, offering concrete options with a recommendation per beat: cursor travel to a target, click or tap (scale dip), hover reveal (tooltip pop), toggle or tab switch, panel resize or fold, content stagger-in, focus ring, typing, drag. Tie each to something visible in the designs (a hovered state, a tooltip, a cursor already drawn in the Figma frame) and never invent UI that is not in the source. Ask whether microinteractions should be exported as separate pieces (e.g. the cursor) so they can be reused.
@@ -80,7 +81,7 @@ Build the timeline as **beats**. A beat is a named span of scroll progress with 
 
 **Start with directions, not moves.** For each iteration, propose 2-3 directions from `directions.md` (name, one-line feel, what the viewer sees, why it fits that iteration's story) and ask which to use, mix or discard. Iterations may use different directions (a good default shape is calm -> lively -> resolved), as long as line weight, typography, accent color, grid and the flat-front resolve stay constant so it reads as one film. Only after directions are chosen, pick specific moves from the catalog.
 
-**Score every beat on three axes** before proposing it: technical (derived from the real design, with true measurements and names), aesthetic (rhythm, one focal motion, a satisfying landing), and story (matches a sentence in the text column). A beat that fails any axis gets changed or cut. See the rubric in `directions.md`.
+**Score every beat on four axes** before proposing it: technical (derived from the real design, with true measurements and names), aesthetic (rhythm, one focal motion, a satisfying landing), story (matches a sentence in the text column), and **experience** (the viewer can follow it, read the sentence at the rest, and is not made to wait or chase). A beat that fails any axis gets changed or cut. See the rubric in `directions.md` and the viewer model in `reference/pacing.md`.
 
 **The blueprint is optional per transition** (see intake question 9). Only use the arc below for transitions the user chose to show as blueprint. For a *UI morph* transition, keep the camera flat (`rx = rz = 0`), keep `f = 1`, use `G.flat` to interpolate each piece's rect, and let the engine cross-fade the old and new crops. Reveal new content with a short stagger (`y` offset and `o`), and let a microinteraction (cursor tap) trigger the change.
 
@@ -96,7 +97,12 @@ Default iteration arc (adapt to the user's story, do not impose it):
 Rules for good choreography:
 - Every motion must be justified by the story the user gave. If a piece moves, the text beside it should explain why.
 - One idea per beat. Do not move everything at once; stagger by depth and reading order (typically 40-90ms of progress-equivalent offset).
-- **Scroll budget (portfolio default).** Busy readers must not have to scroll much. Keep the distance between consecutive story sentences (snap anchors of adjacent beats) to **about 100vh or less**, and total `scrollVh` to roughly **100vh x number of beats** (e.g. 3 beats = ~300-340vh). Never go above that unless the user explicitly asks for a cinematic pace. If a draft feels long, cut beats or shorten holds before adding scroll. Compress motion into fewer, shorter ranges rather than stretching the page.
+- **Scroll budget (portfolio default).** Busy readers must not have to scroll much. Keep the distance between consecutive story sentences (snap anchors of adjacent beats) to **about 55-105vh**, and total `scrollVh` to roughly **100vh x number of beats + 40** (e.g. 3 beats = ~340vh). Never go above that unless the user explicitly asks for a cinematic pace. If a draft feels long, cut beats or shorten holds before adding scroll. Compress motion into fewer, shorter ranges rather than stretching the page. Where the budget goes first: rests, then hero motion, then cues and landings, then settles (`reference/pacing.md`).
+- **Build every beat from five parts: Settle, Cue, Hero, Land, Rest.** The text anchor sits inside the Rest, so a reader who stops to read always sees a finished pose. Never place an anchor mid-motion.
+- **Text leads, the stage shows.** The sentence arrives at a rest; the cue and hero play after the viewer has had time to read it (about 0.6vh of scroll per word, at least 20vh). Do not run a hero motion across a text change.
+- **Things that change for the same reason move in lockstep** (same start, end and easing: camera flatten + piece resolve). Things that change for different reasons are staggered. Unchanged pieces get explicit hold keys.
+- **Motion near the finger.** Cap how fast anything moves relative to the scroll that drives it (about 6x at its fastest instant). A move shorter than ~8vh reads as a glitch; lengthen it or make it a fade.
+- **Show something within the first ~5vh.** Never open on an empty stage for more than ~10vh.
 - Keep the camera orbit continuous across beats (no sudden direction flips) and cap rotation speed.
 - The front-view hold must be long enough to actually read the design (at least ~12% of an iteration's scroll span).
 - Each beat has one hero motion and at most two supporting motions. Everything else is still.
@@ -105,14 +111,14 @@ Rules for good choreography:
 
 **Motion ideas**: pull 3-5 fitting options from the catalog for each iteration transition and present them with one-line descriptions. Check the catalog's Engine column: `native` and `compose` moves can be built from the template; `custom` moves need new engine code, so say so and confirm first. Ask the user to choose or mix. Do not decide for them. If the node analysis shows a notable change (merge, split, new, removed), ask specifically how that transformation should read ("when the three filters merge: converge into one bar, or fold into a stack and unfold?").
 
-**Gate 3**: share a beat sheet (table: beat, scroll range, camera, what moves, story line). Get approval before writing code.
+**Gate 3**: share a beat sheet (table: beat, scroll range, camera, what moves, story line) **and the pacing worksheet** (table in `reference/pacing.md`: per part, the scroll range, length in vh, easing, and *why this long*). State the total `scrollVh`, the gap between text anchors, and which beats are brisk vs. lingering. Get approval before writing code.
 
 ### Phase 4: Build
 
 1. Prepare assets: crop each component from its iteration image into `assets/<iteration>/<id>.png` at 2x if the source allows. Keep file sizes sane (optimize/convert to WebP when appropriate and confirm the user is fine with that).
    For a UI morph, a full-frame crop would show stale content under the new screen. Derive a **clean base image**: copy the destination screenshot and erase only the rects of content that will animate in as separate pieces (fill with the sampled panel color), then verify programmatically that no pixel outside those rects changed. Sample colors from the PNG, do not eyeball them. Small assets that travel (a cursor) are exported separately and referenced with a per-rect `img`.
-2. Copy `assets/scene-template.html` into the project and fill the `SCENE` object: reference frames, components, iterations, beats, camera keys. Keep data and engine separate so the user can retune timing without touching the engine.
-3. Implement scroll mapping: a tall track element with the stage sticky at the left half; progress from scroll position of the track. Snap mode uses invisible sentinels at beat anchors with CSS `scroll-snap`; continuous mode uses none. Match what was chosen at Gate 0.
+2. Copy `assets/scene-template.html` into the project and fill the `SCENE` object: reference frames, components, iterations, beats, camera keys. Keep data and engine separate so the user can retune timing without touching the engine. Put every motion window in **one `TIMING` object** (see the template) that mirrors the pacing worksheet, with the rests written as comments beside it; camera keys and living-element times derive from it or sit on its boundaries.
+3. Implement scroll mapping: a tall track element with the stage sticky at the left half; progress from scroll position of the track. **Pin each text section at its beat's anchor** (centred in the viewport when scroll reaches `beat.snap`) so words and stage pose always arrive together, as in `bob-scene/`. Do not stack sections in normal flow. Snap mode uses invisible sentinels at beat anchors with CSS `scroll-snap`; continuous mode uses none. Match what was chosen at Gate 0.
 4. Structure the output as two exportable halves joined by one source of truth, `story.js`. See `reference/story-contract.md` (reference implementation: `bob-scene/`). Each text section carries `data-beat="<beat-id>"`. Use the rationale from Phase 1 as the copy (marked DRAFT) unless the user supplies their own.
 5. Themes: light and dark through CSS variables (`--bg`, `--line`, `--line-faint`, `--fill`, `--accent`). The theme is chosen **per beat** (`beat.theme` in `story.js`) and is independent of the OS; do not use `prefers-color-scheme`.
 6. Performance: transform/opacity only, `will-change` on moving pieces, no layout thrash, one `requestAnimationFrame` loop that runs only while progress changes. Test with 40+ pieces.
@@ -126,6 +132,7 @@ Do both the visual pass and the measured checks. Screenshots catch what looks wr
 **Visual pass.** Screenshot each beat anchor plus midpoints in light and dark. Check: (a) front views match the source images side by side, (b) labels are legible, (c) nothing overlaps unintentionally during morphs, (d) no more than 3 living elements are on stage at once.
 
 **Measured checks.** Run these in a throwaway copy of the page and read the results from `document.title` or the console:
+0. **Pacing audit.** Load `assets/pacing-audit.js` and run `pacingAudit(SCENE)` (works in a browser console or Node; it reads `SCENE` only). Fix every flag (`tooShort`, `tooFast`, `deadScroll`, `notAtRest`, `holdTooShort`, `crowded`, `overlapping`, budget) or record in the worksheet why it is intentional. Passing does not prove it feels right: then run the stop, flick, eye-path and read-aloud tests in `reference/pacing.md`.
 1. **Error probe.** Add `window.addEventListener("error", ...)` before the script and confirm nothing throws at load or during `render()`.
 2. **Clip sweep.** Call `render(t)` for t = 0 to 1 in 60 steps and collect every visible `.piece` and `.ex` whose bounding box leaves `.stage-col`. Expected exceptions are only deliberate slide-ins. Anything else means a yaw/scale pairing is too wide or an annotation is anchored too close to the edge.
 3. **Overlay alignment.** With the camera forced flat (`rx = rz = 0`), confirm each ruler spans its piece's edge and each selection box sits at the piece rect plus its padding, within about 1px.
@@ -134,7 +141,7 @@ Do both the visual pass and the measured checks. Screenshots catch what looks wr
 
 **Capture tip.** Headless screenshots taken after a programmatic `scrollTo` can come out blank. Reliable approach: make a throwaway copy of the page where `progress()` returns a fixed value, screenshot that, and delete the copy. Real scrolling, snap mode, mobile layout and reduced-motion need a real browser; if you cannot drive one, say they are unverified.
 - If the browser cannot be driven in this environment, say so and describe what was verified by reading only.
-- Report back with the beat sheet as built, anything that deviated from the plan and why, and a short list of knobs the user can tune (stroke, lift, orbit angle, easing, scroll length).
+- Report back with the beat sheet and the final pacing worksheet as built, the audit result, anything that deviated from the plan and why, and a short list of knobs the user can tune (the `TIMING` windows, stroke, lift, orbit angle, easing, scroll length).
 
 ## Question-asking style
 
@@ -150,6 +157,8 @@ Do both the visual pass and the measured checks. Screenshots catch what looks wr
 | `reference/directions.md` | Seven creative directions, the technical/aesthetic balance rubric, how to mix them, and a casting guide for living elements |
 | `reference/story-contract.md` | The file split (story / scene data / engine / css), the per-beat theme rule, and how to embed either half alone |
 | `reference/choreography.md` | Piece, living-element, camera and beat schema; entrance styles; generators; timing; fidelity rules; beat sheet format |
+| `reference/pacing.md` | The viewer model, the five-part beat (Settle, Cue, Hero, Land, Rest), duration table in vh, speed rule, text/motion orchestration, easing intent, scroll budget, the pacing worksheet, test list and anti-patterns |
 | `reference/morph-catalog.md` | Motion menu (assembly, camera, disassembly, morphs by change type, living elements, UI morph and microinteractions) with an Engine column showing what is native vs. needs custom code |
+| `assets/pacing-audit.js` | Reads `SCENE` and reports pacing problems (too short, too fast, dead scroll, anchors not at rest, holds shorter than the copy, crowded anchors, unstaggered bursts, budget). Browser or Node |
 | `assets/scene-template.html` | Self-contained scroll-driven engine with split layout, light/dark themes, drafting grid, constant-size strokes and labels, and a working two-iteration demo with the full living layer |
 | `examples/worked-example.md` | A complete sample run: intake answers, component tree, match table, direction choice, beat sheet |

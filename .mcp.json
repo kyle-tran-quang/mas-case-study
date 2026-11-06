@@ -4,9 +4,13 @@
       "type": "http",
       "url": "https://mcp.figma.com/mcp"
     },
-    "slack": {
+    "carbon-mcp": {
       "type": "http",
-      "url": "https://mcp.slack.com/mcp"
+      "url": "https://mcp.carbondesignsystem.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${CARBON_MCP_TOKEN}",
+        "X-MCP-Session": "${CARBON_MCP_SESSION}"
+      }
     }
   }
 }

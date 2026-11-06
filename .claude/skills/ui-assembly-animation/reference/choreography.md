@@ -137,10 +137,17 @@ Layer the generators per beat so changing a beat's range retunes everything. Ord
 
 ## Timing guidance
 
-- Iteration span: 0.30-0.45 of total progress for a 3-iteration story. Scroll distance: **portfolio/recruiter default is ~100vh per story beat (about 300-340vh for 3 beats; <= ~100vh between adjacent text anchors)**. Only go to 250-400vh per iteration when the user explicitly wants a cinematic pace.
-- Stagger: spread the staggered pieces over 40-60% of the beat length, not all of it, so the last piece still has time to settle.
-- Resolve hold: >= 12% of the iteration's span.
-- Easing: `inOutCubic` for camera; `outBack` (small overshoot, 1.2-1.4) for lego drops; `inOutQuart` for large travel; `linear` only for continuous orbit.
+The full method is in `pacing.md` (viewer model, five-part beat, duration table, speed rule, worksheet). The short version:
+
+- **Think in vh of scroll, not progress.** `vh = (t1 - t0) x (scrollVh - 100)`. 1% of `t` is `(scrollVh - 100) / 100` vh, so every number in the keys should be traceable to a length in vh and a reason.
+- **One `TIMING` object.** Put every motion window in it (see `assets/scene-template.html`), write the rests as comments beside it, and derive piece keys, camera keys and living-element times from it. Retiming is then a one-place edit.
+- **Anchors sit on rests.** `beat.snap` must be inside a window where no piece and no camera key is changing (about 10vh clear on both sides). The template pins each text section at its anchor.
+- Scroll distance: **portfolio/recruiter default is ~100vh per story beat plus 40 (about 340vh for 3 beats; 55-105vh between adjacent text anchors)**. Only go beyond that when the user explicitly wants a cinematic pace.
+- Stagger: spread the staggered pieces over 40-60% of the group's window, not all of it, so the last piece still has time to settle (>= 15vh).
+- Lockstep: camera and the pieces that follow it (flatten + resolve, tilt + lift) share `t0`, `t1` and easing. Do not stagger them.
+- Rests: `min(60vh, 20vh + 0.6vh x words)` of still scroll around the anchor; hold beats get the longer end.
+- Minimum visible move: 8vh. Maximum on-screen speed: about 6x the scroll that drives it (`assets/pacing-audit.js` checks both).
+- Easing: `inOutCubic` for camera; `outBack` (small overshoot, 1.2-1.4) for lego drops, inside the Land segment only; `inOutQuart` for large travel; `linear` only for continuous orbit.
 - Rotation: cap yaw change at ~70 degrees per beat so spins read as deliberate, not frantic.
 
 ## Fidelity rules
@@ -155,5 +162,7 @@ Layer the generators per beat so changing a beat's range retunes everything. Ord
 | Beat | Scroll range | Camera | What moves | Morph type | Story line (right text) |
 |---|---|---|---|---|---|
 | ... | ... | ... | ... | ... | ... |
+
+Ship it with the **pacing worksheet** from `pacing.md` (per part: range, length in vh, easing, why this long).
 
 Mark any decision the agent made on the user's behalf with "(agent choice)".

@@ -77,7 +77,7 @@ The v2 to v3 table is built the same way: the three `filters` pieces merge into 
 
 ## Gate 3: beat sheet (excerpt)
 
-Scroll budget: 1400vh total. Mode: hybrid (continuous, with soft snaps at the Resolve holds). Cells marked **(agent choice)** are mine, so you can redirect.
+Scroll budget: 740vh total (7 beats x 100vh + 40; text anchors 55-105vh apart). Mode: hybrid (continuous, with soft snaps at the Resolve holds). Cells marked **(agent choice)** are mine, so you can redirect.
 
 | Beat | Scroll | Camera | Hero motion | Support | Living layer | Story line |
 |---|---|---|---|---|---|---|
@@ -89,7 +89,21 @@ Scroll budget: 1400vh total. Mode: hybrid (continuous, with soft snaps at the Re
 | v3 Teardown | 0.54-0.80 | locked iso, side profile at 0.66 | Explode with leader lines | The three filters converge into one bar | Callout "Live trend", measured gap rulers | "Structure over decoration: one filter bar, one trend line." |
 | v3 Resolve | 0.80-1.00 | flat | Real v3 | none | Chip "-38% time to find late deliveries", avatar for the ops manager | "The result." |
 
-**Balance check (per beat):** technical (does the motion use real rects and measured values?), aesthetic (one hero motion, a landing?), story (does a sentence in the text column explain it?). Any beat with a "no" gets revised before build.
+**Balance check (per beat):** technical (does the motion use real rects and measured values?), aesthetic (one hero motion, a landing?), story (does a sentence in the text column explain it?), experience (is the anchor on a rest, can the eye follow it, is nothing waiting or chasing?). Any beat with a "no" gets revised before build.
+
+### Pacing worksheet (excerpt for the v2 Iterate beat)
+
+Total 740vh, so 1% of `t` = 6.4vh. Ranges below are inside the 0.30-0.46 beat. Words in the beat's sentence: 9, so the rest needs `20 + 0.6 x 9 = 25vh`.
+
+| Part | t range | Length | What happens | Easing | Why this long |
+|---|---|---|---|---|---|
+| Settle | 0.30-0.31 | 6vh | Previous pose holds; new sentence arrives | none | Short on purpose: the v1 review rest just before already gave the reader time |
+| Cue | 0.31-0.33 | 13vh | Selection box and ruler appear on the map; Kyle's cursor travels ~200px to it | inOutCubic (peak 3x) | Eye needs to be on the map before it moves. 13vh is ~117px of scroll, and a 200px path at 3x peak is 5x the finger, under the 6x cap |
+| Hero | 0.33-0.40 | 45vh | Map shrinks, table becomes the Late panel and travels to the top. Travellers staggered over 40%. | inOutQuart (peak 4x) | One idea. ~420px travel at 4x peak needs at least 31vh to stay under 6x; 45vh leaves room for the stagger so the last traveller still gets a full settle |
+| Land | 0.40-0.42 | 13vh | Panel settles; selection box fades; KPI row slides left (supporter, starts after Hero's first third has passed) | outBack, 1.2 | Overshoot lives here only |
+| Rest | 0.42-0.46 | 26vh | Pose is stable; **anchor at 0.44** (10vh clear either side) | none | The sentence is 9 words: `20 + 0.6 x 9 = 25vh` |
+
+Note what this does *not* contain: no motion crosses the text change, the camera tilt-back is in lockstep with the lift of the pieces (same window, same easing), and the stamp for v2 waits for the Resolve rest. The budget went to the Hero and the Rest; the Settle was squeezed. Total: 103vh, which fills the 0.30-0.46 beat (16% of 640vh).
 
 ---
 
@@ -102,6 +116,7 @@ In `assets/scene-template.html`:
 - `extras`: cursors (Kyle, Maya), one `note`, one `pin`, one `select`, one `ruler`, one `callout`, one `chip`, one `avatar`, one `stamp`, each keyed to a beat range and anchored with `at`.
 - `beats`: seven entries, with `snap` set only on the Resolve beats for the hybrid feel.
 - The right-hand text sections carry `data-beat` ids that match.
+- **Layout and type (example guideline):** the left stage has a light grey fill (`--stage-bg: #f4f4f4`) and the right page is white. Right-hand text is Mikado Regular, 32px, black, 24px gap between paragraphs, no headings. A single eyebrow ("THE PROBLEM": 16px, uppercase, `#a8a8a8`) appears on the first section only; later sections have body text alone. (The Figma reference used IBM Plex Sans; Mikado replaces it.)
 
 ## What this example is *not*
 

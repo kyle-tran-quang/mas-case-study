@@ -97,7 +97,9 @@
         if (n.txt !== txt) { n.txt = txt; tag.textContent = txt; }
         tag.style.opacity = f < 0.3 ? 1 - f / 0.3 : 0;
         tag.style.maxWidth = (box.w * ws) + "px";               // tag is counter-scaled, so clip it to the piece's on-screen width
-        paintLayer(a, p, k.rectA, box, k.rectB === k.rectA ? f : f * (1 - k.u));
+        // Cross-fade: the outgoing crop stays fully opaque and the incoming crop fades in over it. Fading both
+        // (1-u, u) only covers 75% at the midpoint, so the page background shows through the piece.
+        paintLayer(a, p, k.rectA, box, k.rectB === k.rectA || k.u < 0.999 ? f : 0);
         paintLayer(b, p, k.rectB, box, k.rectB === k.rectA ? 0 : f * k.u);
       });
       const bi = beatAt(t), beat = STORY.beats[bi];

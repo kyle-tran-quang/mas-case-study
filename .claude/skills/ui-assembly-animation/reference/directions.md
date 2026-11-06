@@ -6,13 +6,14 @@ Never apply a direction without approval. Always show it as: name, one-line feel
 
 ## The balance rubric: technical vs. aesthetic
 
-Every beat has to earn its place on both axes. Score each beat before proposing it.
+Every beat has to earn its place on all four axes. Score each beat before proposing it.
 
 | Axis | Question | Failing looks like |
 |---|---|---|
 | **Technical** | Is it derived from the real design (positions, hierarchy, sizes, ids)? Does a measurement, label or annotation say something true? | Pretty motion that could be about any UI |
 | **Aesthetic** | Does it have rhythm, a clear focal point, restraint, and a satisfying landing? | Accurate but flat, everything moving at once |
 | **Story** | Does it explain *why* this iteration exists? | Motion with no matching sentence in the text column |
+| **Experience** | Can the viewer follow it, read the sentence at a still moment, and never wait or chase? (Settle, Cue, Hero, Land, Rest: see `pacing.md`.) | Anchor mid-motion, two things moving at once, dead scroll, a move that outruns the finger |
 
 Rules of thumb:
 - Each beat has **one hero motion** (what the eye follows) and at most **two supporting motions**. Everything else is still.

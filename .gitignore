@@ -5,3 +5,10 @@ Thumbs.db
 .vscode/
 .idea/
 node_modules/
+
+# Local secrets (Carbon MCP token)
+.claude/settings.local.json
+
+# Playwright
+test-results/
+playwright-report/

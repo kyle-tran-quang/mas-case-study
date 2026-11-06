@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-GOAT: Maximo Growth Opportunities Assessment Tool (Acts 1 and 2.3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- IBM Plex Sans: Carbon tiles in the scene + hero description/meta. IBM Plex Mono Light Italic: hero title (Figma 82:8717). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,300&display=swap">
+<link rel="stylesheet" href="scene.css">
+<style>
+  /* Mikado (licensed, from /fonts) is the right-hand story column's font, per the author. The file name is the weight/style: Regular is 400. */
+  @font-face { font-family: "Mikado"; src: url("../fonts/Mikado-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+  :root { --story-font: "Mikado", "IBM Plex Sans", system-ui, sans-serif; }
+
+  html, body { margin: 0; background: var(--page); color: var(--text); font: 32px/normal var(--story-font); }
+
+  /* ---------- Hero (Figma 82:8717, 1440 x 968): grey image slot, title, description, Role / Timeline ---------- */
+  /* 100vh: a flex column. The text block keeps its natural height; the image slot absorbs the rest (476px at the Figma 968px height, taller on bigger screens). */
+  .hero { background: #f2f2f2; height: 100vh; min-height: 640px; padding: 100px 0 80px; box-sizing: border-box; display: flex; flex-direction: column; }
+  .hero-image { margin: 0 24px; flex: 1 1 auto; min-height: 160px; background: #dfdfdf; border-radius: 20px; overflow: hidden; }
+  .hero-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .hero-body { flex: 0 0 auto; display: flex; gap: 64px; width: 100%; max-width: 1200px; margin: 0 auto; padding: 40px 24px 0; box-sizing: border-box; }
+  .hero-title { flex: 1 1 0; min-width: 0; margin: 0; font: italic 300 68px/68px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: -3.4px; color: #3d3d3d; }
+  .hero-side { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+  .hero-desc { margin: 0; padding-top: 8px; font: 400 24px/normal "IBM Plex Sans", system-ui, sans-serif; color: #7a7a7a; }
+  .hero-meta { display: flex; justify-content: space-between; margin: 0; font: 400 16px/22.4px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: -.3925px; }
+  .hero-meta div { display: flex; flex-direction: column; }
+  .hero-meta div:last-child { text-align: right; }
+  .hero-meta dt { color: #7a7a7a; } .hero-meta dd { margin: 0; color: #3d3d3d; }
+
+
+  /* ---------- Hero -> stage transition (hero-transition.js). The hero is pinned for `introVh` of scroll while its image box morphs into the stage. ---------- */
+  .hero-track { position: relative; }                                   /* height set in JS: 100vh + introVh */
+  .hero-pin { position: sticky; top: 0; height: 100vh; overflow: hidden; background: transparent; z-index: 5; }
+  .hero-pin .hero { position: absolute; inset: 0; z-index: 1; }          /* the hero page: #f2f2f2, text; its own image slot is the box's starting rect */
+  .hero-pin .hero .hero-image { visibility: hidden; }                    /* the slot only reserves the space; the morphing box is drawn by .hero-box */
+  .hero-box { position: absolute; left: 0; top: 0; z-index: 2; overflow: hidden; background: #dfdfdf; will-change: transform, width, height, border-radius, opacity; }
+  .hero-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--hero-focus, 0% 50%); display: block; }
+  .hero-box .tint { position: absolute; inset: 0; background: #f4f4f4; opacity: 0; }       /* fades the image's blue-grey toward the stage grey */
+  .hero-pin.done { visibility: hidden; }
+
+
+  /* While the hero is pinned the real layout is still below the fold, so a fixed copy of the first scene frame sits under the hero and is revealed by the dissolve. */
+  .intro-under { position: fixed; inset: 0; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; pointer-events: none; visibility: hidden; }
+  .intro-under.on { visibility: visible; }
+  .intro-under .u-stage { position: relative; overflow: hidden; background: var(--bg); }
+  .intro-under .u-col { background: var(--page); }
+  .intro-under .u-col section { opacity: var(--intro-copy, 0); transition: none; }   /* the first beat's text, fading in with the dissolve */
+  @media (max-width: 800px) { .intro-under { grid-template-columns: 1fr; grid-template-rows: 55vh 1fr; } }
+
+  /* ---------- Split layout: scene (left, sticky) + story column (right) ---------- */
+  /* margin-top: -100vh puts the layout's top at the viewport top at the exact scroll position where the intro ends (hero track = 100vh + introVh).
+     Until then it is hidden (visibility), because the fixed .intro-under stands in for it and the layout would otherwise slide up behind the dissolve. */
+  .layout { display: grid; grid-template-columns: 1fr 1fr; position: relative; margin-top: -100vh; }
+  .layout.pre-intro { visibility: hidden; }
+  .stage-col { position: sticky; top: 0; height: 100vh; }
+  .text-col { position: relative; background: var(--page); }
+  .text-col section { position: absolute; left: 48px; width: min(536px, calc(100% - 144px)); transform: translateY(-50%); display: flex; flex-direction: column; gap: 24px;
+                      opacity: 0; transition: opacity .35s ease; }
+  .text-col section.active { opacity: 1; }
+  .text-col p { margin: 0; font-size: 32px; line-height: normal; color: var(--text); font-weight: 400; }
+  .text-col p.eyebrow { font-size: 16px; color: var(--muted); letter-spacing: 0; }
+  .progress { position: fixed; right: 36px; top: 50%; transform: translateY(-50%); width: 56px; padding: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 3;
+              opacity: 0; pointer-events: none; transition: opacity .3s; }
+  .progress.on { opacity: 1; }
+  .progress i { display: block; height: 1px; width: 32px; background: #8d8d8d; transition: background-color .3s, width .3s; }
+  .progress i.act { background: #000; width: 40px; }                      /* the active beat is the long black line (Figma 41:33) */
+  @media (max-width: 1100px) { .hero-title { font-size: 52px; line-height: 52px; letter-spacing: -2.6px; } }
+  @media (max-width: 800px) {
+    .hero { padding: 72px 0 48px; min-height: 0; } .hero-image { margin: 0 16px; min-height: 120px; }
+    .hero-body { flex-direction: column; gap: 32px; padding: 32px 16px 0; }
+    .hero-title { font-size: 40px; line-height: 40px; letter-spacing: -2px; } .hero-desc { font-size: 20px; } .hero-meta { margin-top: 8px; }
+    .layout { grid-template-columns: 1fr; }
+    .stage-col { height: 55vh; z-index: 1; }
+    .text-col section { left: 24px; width: calc(100% - 96px); }
+    .text-col p { font-size: 24px; }
+    .progress { right: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .text-col section, .progress, .progress i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="hero-track" id="heroTrack"><div class="hero-pin" id="heroPin">
+<header class="hero" id="hero">
+  <div class="hero-image" id="heroSlot"></div>
+  <div class="hero-body">
+    <h1 class="hero-title">IBM Maximo<br>Growth Assessment Tool</h1>
+    <div class="hero-side">
+      <p class="hero-desc">Designing an internal enablement tool that helps Maximo sellers guide customers to use more of what they already own, so customers see more value from their investment.</p>
+      <dl class="hero-meta">
+        <div><dt>Role</dt><dd>UX Designer</dd></div>
+        <div><dt>Timeline</dt><dd>Feb - Jul 2026</dd></div>
+      </dl>
+    </div>
+  </div>
+</header>
+<div class="hero-box" id="heroBox" role="img" aria-label="Preview of the growth roadmap report: a tilted screen showing the Maximo growth roadmap, a flow diagram, and a 48% readiness card."><img src="assets/hero/hero.webp" alt="" decoding="async"><div class="tint"></div></div>
+</div></div>
+<div class="intro-under" id="introUnder" aria-hidden="true"><div class="u-stage"><div id="underScene" style="width:100%;height:100%"></div></div><div class="u-col text-col" id="underCol"></div></div>
+
+<div class="layout pre-intro" id="layout" data-theme="light">
+  <div class="stage-col"><div id="scene" style="width:100%;height:100%"></div></div>
+  <div class="text-col" id="text"></div>
+</div>
+<nav class="progress" id="progress" aria-hidden="true"></nav>
+
+<script src="story.js"></script>
+<script src="assembly-engine.js"></script>
+<script src="capabilities-data.js"></script>
+<script src="capabilities.js"></script>
+<script src="v1-ui.js"></script>
+<script src="v2-ui.js"></script>
+<script src="scene-data.js"></script>
+<script src="hero-transition.js"></script>
+<script>
+(function () {
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const layout = document.getElementById("layout"), text = document.getElementById("text"), prog = document.getElementById("progress");
+  const vh = STORY.scrollVh, maxVh = vh - 100;          // scrollable distance in vh = total minus one viewport
+  layout.style.height = vh + "vh";
+
+  // Hero -> stage transition: the hero is pinned for introVh of scroll (hero-transition.js), then the layout follows.
+  const introVh = STORY.introVh || 0, HT = window.HeroTransition;
+  const heroTrack = document.getElementById("heroTrack"), heroPin = document.getElementById("heroPin"), heroPage = document.getElementById("hero"),
+        heroSlot = document.getElementById("heroSlot"), heroBox = document.getElementById("heroBox"), tint = heroBox.querySelector(".tint"),
+        heroText = heroPage.querySelector(".hero-body");
+  heroTrack.style.height = (100 + introVh) + "vh";
+  if (introVh <= 0) layout.classList.remove("pre-intro");
+  const rectOf = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+  let R0 = null, R1 = null;                                // viewport-space rects: the hero image slot, and the stage (left half of the viewport)
+  const measure = () => {
+    heroText.style.transform = "none"; heroBox.style.opacity = 0;
+    const pin = heroPin.getBoundingClientRect(), slot = heroSlot.getBoundingClientRect();
+    R0 = { x: slot.left - pin.left, y: slot.top - pin.top, w: slot.width, h: slot.height };          // relative to the pinned hero (which is at viewport 0,0 while pinned)
+    const narrow = matchMedia("(max-width: 800px)").matches;
+    R1 = narrow ? { x: 0, y: 0, w: innerWidth, h: innerHeight * 0.55 } : { x: 0, y: 0, w: innerWidth / 2, h: innerHeight };
+  };
+  // Right half: one section per beat, centred in the viewport when scroll reaches the beat's snap anchor. A beat with no copy renders no section (the visual plays).
+  const buildSection = b => {
+    const s = document.createElement("section");
+    s.dataset.beat = b.id; s.style.top = `calc(${(b.snap ?? b.range[0]) * maxVh}vh + 50vh)`;
+    if (b.eyebrow) { const e = document.createElement("p"); e.className = "eyebrow"; e.textContent = b.eyebrow; s.appendChild(e); }
+    b.copy.forEach(c => { const p = document.createElement("p"); p.textContent = c; s.appendChild(p); });
+    return s;
+  };
+  // One text "slot" per section. A beat normally has one slot (its `copy`, on screen for the whole beat). A beat with `texts` has one slot per entry:
+  // each is centred at its own `snap`, and is on screen from the midpoint after the previous text to the midpoint before the next (first = beat start, last = beat end).
+  const slots = [];
+  STORY.beats.forEach(b => {
+    if (b.texts && b.texts.length) {
+      b.texts.forEach((t, i) => {
+        const prev = b.texts[i - 1], next = b.texts[i + 1];
+        slots.push({ id: t.id, beat: b, snap: t.snap, copy: t.copy, eyebrow: t.eyebrow,
+                     from: t.from ?? (prev ? (prev.snap + t.snap) / 2 : b.range[0]), to: t.to ?? (next ? (t.snap + next.snap) / 2 : b.range[1]) });
+      });
+    } else if (b.copy.length || b.eyebrow) slots.push({ id: b.id, beat: b, snap: b.snap ?? b.range[0], copy: b.copy, eyebrow: b.eyebrow, from: b.from ?? b.range[0], to: b.to ?? b.range[1] });
+  });
+  const sections = slots.map(sl => { const s = buildSection(sl); text.appendChild(s); sl.el = s; return s; });
+  // the under-stage shows the first beat's text during the dissolve. It is positioned like the real one at the moment of handover:
+  // the real layout's top is at the viewport top then, so a section at `top: calc(snap * maxVh vh + 50vh)` sits where it will be after the swap.
+  const underCol = document.getElementById("underCol"), firstBeat = STORY.beats.find(b => b.copy.length || b.eyebrow);
+  if (underCol && firstBeat) { const u = buildSection(firstBeat); u.classList.add("active"); underCol.appendChild(u); }
+  // Progress ticks: one per beat (redrawn from the beat list, so the count always matches the story)
+  const ticks = STORY.beats.map(() => { const i = document.createElement("i"); prog.appendChild(i); return i; });
+
+  const scene = AssemblyScene.mount(document.getElementById("scene"), { scene: SCENE, story: STORY });
+  const introUnder = document.getElementById('introUnder');
+  const underScene = introVh > 0 ? AssemblyScene.mount(document.getElementById('underScene'), { scene: SCENE, story: STORY }) : null;
+  if (underScene) underScene.render(0);                // frozen at t = 0: the first beat's skeleton
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const poses = STORY.beats.map(b => b.pose ?? b.snap ?? b.range[0]);
+  const anchors = STORY.beats.map(b => b.snap ?? b.range[0]);
+
+  // scroll is the ONLY clock. The scene section starts below the hero, so progress is measured from the top of the split layout.
+  const target = () => clamp(-layout.getBoundingClientRect().top / Math.max(1, layout.offsetHeight - innerHeight), 0, 1);
+  let shown = target(), last = -1, raf = 0, prevTs = 0;
+  const tau = reduce ? 0 : (STORY.smoothing || 0);          // ms; the scene eases toward the scroll position, the text follows scroll directly
+
+  // hero progress q = how far the scroll has gone through the pinned intro (0 at the top of the page, 1 when the layout takes over)
+  const introPx = () => (introVh / 100) * innerHeight;
+  const qNow = () => introVh > 0 ? clamp(scrollY / introPx(), 0, 1) : 1;
+  function drawHero(q) {
+    if (!HT || !R0) return;
+    const S = HT.state(q, R0, R1);
+    const done = introVh <= 0 || S.done;
+    heroPin.classList.toggle("done", done); if (introUnder) introUnder.classList.toggle("on", !done);
+    layout.classList.toggle("pre-intro", !done);        // exactly one of {under-stage, real layout} is visible in any frame: no gap, no overlap
+    if (done) return;
+    heroText.style.opacity = S.text.opacity; heroText.style.transform = `translateY(${S.text.y}px)`;
+    heroPage.style.background = `rgba(242,242,242,${S.bg.opacity})`;                  // #f2f2f2 fades, revealing the split layout underneath
+    heroBox.style.opacity = S.box.opacity; heroBox.style.borderRadius = S.box.radius + "px";
+    heroBox.style.width = S.box.w + "px"; heroBox.style.height = S.box.h + "px"; heroBox.style.transform = `translate(${S.box.x}px,${S.box.y}px)`;
+    tint.style.opacity = Math.min(1, S.u * 0.9);                                       // image blue-grey -> stage grey as the box lands
+    if (introUnder) introUnder.style.opacity = S.scene.opacity;
+    if (introUnder) introUnder.style.setProperty("--intro-copy", S.copy.opacity);
+  }
+
+  function paint(t) {
+    if (t === last) return; last = t;
+    const { beat } = scene.render(t);
+    const cur = STORY.beats.find(b => b.id === beat);
+    layout.dataset.theme = cur ? cur.theme : "light";
+    ticks.forEach((i, n) => i.classList.toggle("act", STORY.beats[n].id === beat));
+  }
+  /* ---- v1 auto-scroll. The scene is a pure function of scroll t, with ONE exception: v1's form scrolls itself (SCENE.v1Scroll, 0..1).
+     idle -> playing   when scroll reaches STORY.auto.at (before the v1 -> v2 morph): the page is held at that exact spot and the form scrolls for durationMs.
+     playing -> skipping  on the first wheel / touch / key / scrollbar move after graceMs: the form runs to its end in skipMs and the input goes through to the page.
+     -> done           the form is at its end. Scrolling back above `at` by resetVh re-arms it. Reduced motion: no playback, the form shows its end. */
+  const AUTO = STORY.auto, MORPH_T = TIMING.v2.morph[0] / TIMING.MAX;
+  const A = { state: "idle", p: 0, t0: 0, from: 0, lockY: 0, graceUntil: 0, raf: 0 };
+  const NAV = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " ", "Spacebar"]);
+  SCENE.v1Scroll = reduce ? 1 : 0;
+  const setP = p => { A.p = SCENE.v1Scroll = p; last = -1; };                       // last = -1 forces the next paint to redraw even if t did not change
+  const yAt = t => scrollY + layout.getBoundingClientRect().top + t * (layout.offsetHeight - innerHeight);   // inverse of target()
+  function onInput(e) {
+    if (e.type === "keydown" && !NAV.has(e.key)) return;
+    if (performance.now() < A.graceUntil) { if (e.cancelable) e.preventDefault(); return; }
+    skipAuto();
+  }
+  const onScroll = () => {
+    if (A.state !== "playing" || Math.abs(scrollY - A.lockY) <= 2) return;
+    if (performance.now() < A.graceUntil) scrollTo({ top: A.lockY, behavior: "instant" }); else skipAuto();
+  };
+  const listen = on => {
+    const m = on ? addEventListener : removeEventListener;
+    m("wheel", onInput, { passive: false }); m("touchstart", onInput, { passive: false }); m("touchmove", onInput, { passive: false });
+    m("keydown", onInput); m("scroll", onScroll, { passive: true });
+  };
+  function autoFrame(ts) {
+    A.raf = 0;
+    if (A.state === "playing") { const u = clamp((ts - A.t0) / AUTO.durationMs, 0, 1); setP(-(Math.cos(Math.PI * u) - 1) / 2); if (u >= 1) finishAuto(); }
+    else if (A.state === "skipping") { const u = clamp((ts - A.t0) / AUTO.skipMs, 0, 1); setP(A.from + (1 - A.from) * (1 - Math.pow(1 - u, 3))); if (u >= 1) finishAuto(); }
+    paint(shown);
+    if (A.state === "playing" || A.state === "skipping") A.raf = requestAnimationFrame(autoFrame);
+  }
+  function startAuto() {
+    A.state = "playing"; A.t0 = performance.now(); A.graceUntil = A.t0 + AUTO.graceMs; A.lockY = yAt(AUTO.at);
+    scrollTo({ top: A.lockY, behavior: "instant" });
+    listen(true); A.raf = requestAnimationFrame(autoFrame);
+  }
+  function skipAuto() { if (A.state !== "playing") return; A.state = "skipping"; A.from = A.p; A.t0 = performance.now(); listen(false); }
+  function finishAuto() { A.state = "done"; listen(false); setP(1); }
+  function resetAuto() { listen(false); cancelAnimationFrame(A.raf); A.raf = 0; A.state = "idle"; setP(0); }
+  function autoStep(goal) {
+    if (reduce) { SCENE.v1Scroll = 1; return; }
+    if (goal < AUTO.at - AUTO.resetVh / TIMING.MAX) { if (A.state !== "idle") resetAuto(); }
+    else if (A.state === "idle" && goal >= AUTO.at) { if (goal < MORPH_T) startAuto(); else { A.state = "done"; setP(1); } }   // arriving past the morph (reload, anchor jump): no playback
+  }
+  window.__mgoat = { auto: () => ({ state: A.state, p: A.p }) };                    // read-only, for tests
+
+  function tick(ts) {
+    raf = 0; const dt = prevTs ? Math.min(64, ts - prevTs) : 16; prevTs = ts;
+    const q = reduce ? (qNow() > 0.5 ? 1 : 0) : qNow(); drawHero(q);
+    let goal = target();
+    autoStep(goal);
+    const r = layout.getBoundingClientRect();
+    prog.classList.toggle("on", r.top <= 0 && r.bottom > innerHeight * 0.5);       // ticks only while the split section is on screen
+    // text follows the scroll position directly (never lags the reader)
+    const lastSlot = slots[slots.length - 1];
+    slots.forEach(sl => sl.el.classList.toggle("active", goal >= sl.from && (goal < sl.to || (sl === lastSlot && goal <= sl.to))));
+    if (reduce) {                                      // reduced motion: jump between key poses (nearest beat anchor, shown at that beat's resolved pose)
+      const bi = anchors.reduce((c, a, i) => Math.abs(a - goal) < Math.abs(anchors[c] - goal) ? i : c, 0);
+      shown = poses[bi]; paint(shown); return;
+    }
+    // exponential ease toward the scroll position, frame-rate independent: shown += (goal - shown) * (1 - e^(-dt/tau))
+    shown = tau > 0 ? shown + (goal - shown) * (1 - Math.exp(-dt / tau)) : goal;
+    if (Math.abs(goal - shown) < 0.0004) shown = goal;
+    paint(shown);
+    if (shown !== goal) req();                          // keep animating until the scene catches up
+  }
+  const req = () => { if (!raf) raf = requestAnimationFrame(tick); };
+  addEventListener("scroll", req, { passive: true });
+  addEventListener("resize", () => { last = -1; req(); });
+
+  if (STORY.mode === "snap") {                          // soft snap to beat anchors
+    document.documentElement.style.scrollSnapType = "y proximity";
+    STORY.beats.forEach(b => {
+      const d = document.createElement("div");
+      d.style.cssText = `position:absolute;left:0;width:1px;height:1px;top:calc(${b.snap ?? b.range[0]} * (100% - 100vh));scroll-snap-align:start`;
+      layout.appendChild(d);
+    });
+  }
+  measure(); shown = target(); req();
+  addEventListener('resize', () => { measure(); req(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); req(); });
+})();
+</script>
+</body>
+</html>
