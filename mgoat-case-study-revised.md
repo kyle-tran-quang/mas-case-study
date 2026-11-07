@@ -4,7 +4,7 @@
 How do you tell a good Maximo story?
 
   
-
+(Introduction)
 Starting with the numbers. IBM Maximo is a 40+ years old asset lifecycle management software suite.
 
   
@@ -25,19 +25,14 @@ Our research and intelligence has shown that:
 
 The opportunity is you can utilize at least 10-15% more of Maximo, to get 40% more ROI benefit. But…that sounds like a huge step for big clients with complex operations.
 
-  
+(Show knowledge base wireframe visuals)
+And also, sellers had a huge knowledge base, with no focus on expansion and maximizing utilization for existing clients.
 
 That is the business problem we’re trying to solve, with the Maximo Growth Opportunities Assessment tool.
 
-  
-
-The initial purpose we had in mind was to help clients know where they are with their Maximo operations, and IBM client teams drive better utilization & expansion, to help them reach their goals and ROI faster.
-
-  
+The purpose we had in mind was to help clients know where they are with their Maximo operations, and IBM client teams drive better utilization & expansion, to help them reach their goals and ROI faster.
 
 How we broke down complexity into manageable steps:
-
-  
 
 Maximo has 13 core applications (modules)
 
@@ -45,12 +40,12 @@ And many pathways tailored to each industry (manufacturing, transportation, oil 
 
   
   
-
+(The diagram visuals)
 We identified 76 milestones to reach full value with Maximo. Each milestone has 5-10 core actions, involving roles like supervisors, technicians, admins, and so on.
 
   
 
-This was the hard and painful part. We even had to build a journey simulator to validate these by hand. (Thanks to Tanushri for the concept, visual accompanying in text frame)
+This was the hard and painful part. We even had to build a journey simulator to validate these by hand. (Thanks to Tanushri for the concept, visual accompanying in text frame, put placeholder for now I'll provide later)
 
   
 
@@ -122,4 +117,5 @@ Stages 1 to 5 for each path helps executives pinpoint exact gaps in their hardwa
 
 **
 
+#Usability testing and improvements
 *to be continued*
