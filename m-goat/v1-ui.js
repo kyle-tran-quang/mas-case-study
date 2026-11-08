@@ -94,10 +94,11 @@
     `</section>`;
 
   // ---- pieces. `k` = the stage scale of the act 2 content (K in scene-data.js).
-  const headerHtml = k => `<div class="v1h" style="--k:${k}"><div class="v1h-in" style="width:${W}px;height:${HEAD_H}px"><div class="v1h-col" style="left:${COL_X}px">` +
+  // `w` = crop width in source px (default 1480). Stage B draws the whole 1682px Figma frame (the landed v1 on slide 12), so the 900px column sits at (w - 900) / 2 = 391.
+  const headerHtml = (k, w = W) => `<div class="v1h" style="--k:${k}"><div class="v1h-in" style="width:${w}px;height:${HEAD_H}px"><div class="v1h-col" style="left:${(w - 900) / 2}px">` +
     `<div class="v1h-chip"><span>IBM Maximo Application Suite</span></div><div class="v1h-title">Maximo Application Suite Growth Assessment</div>` +
     `<div class="v1h-sub">Milestone-first readiness assessment for APM and FSM</div></div></div></div>`;
-  const formHtml = k => `<div class="v1f" style="--k:${k}"><div class="v1f-in" style="width:${W}px;height:${WIN_H}px"><div class="v1-scroll" style="left:${COL_X}px">` +
+  const formHtml = (k, w = W) => `<div class="v1f" style="--k:${k}"><div class="v1f-in" style="width:${w}px;height:${WIN_H}px"><div class="v1-scroll" style="left:${(w - 900) / 2}px">` +
     `<div class="v1-est">Estimated time: 5–8 minutes · All questions are about your current Maximo deployment and practices </div>${CARD_1}${CARD_2}` +
     `<div class="v1-cta"><div class="v1-btn">Compute my growth assessment →</div></div></div></div></div>`;
 

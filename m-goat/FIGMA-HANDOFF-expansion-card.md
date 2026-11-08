@@ -30,7 +30,7 @@ All four sit in a row in section `120:159`, below the slides. Names start with `
 
 Beats 1, 2a, 2b belong to slide 18. Beat 3 is slide 19 (its left panel is a clone of `231:6650`).
 
-Intended sequence on slide 18: whole card, then stage 01 expands and contracts, then stage 02 expands and contracts. **The 01-then-02 order is my assumption.** Confirm it.
+Sequence on slide 18 (confirmed by the author): a cursor hovers stage 01, which expands and contracts, then hovers stage 02, which expands and contracts, and this **loops** while the viewer is on the section. See Decisions below.
 
 ## Geometry (reference pixels, measured from the frames)
 
@@ -64,14 +64,21 @@ Use the real text from the nodes, do not retype it:
 
 The author's source frames are untouched. The copies in the keyframes were scaled to the card's 522px rail width (scale 0.7468) and had their fills bound to tokens, so prefer the keyframes for geometry.
 
-## Open questions (ask the author before building, per the skill)
+## Decisions
 
-1. **Hover mechanics.** Is there a visible cursor that moves to each stage, or does the rail change on its own? `bob-scene/assets/cursor.png` exists if a cursor is wanted. Do not invent UI that is not in the Figma frames.
-2. **Transition style.** UI morph only (stay flat, cross-fade and resize) or any blueprint treatment? The Figma frames only describe flat states.
-3. **Sequence and loop.** 01 then 02, as above? Does each stage contract back to the default rail before the next expands, or does it go straight from 2a to 2b?
-4. **Rail height jump.** See the geometry section: 273.1 vs 283.8 and the shift below.
-5. **Slide 19 zoom.** Zoom in place on the same card, or cut? Pacing: how many vh does the zoom get against the 70vh pitch used in `story.js`?
-6. **Reduced motion.** Which pose is the still fallback for slide 18 (beat 1 is the likely answer) and slide 19 (beat 3)?
+Confirmed by the author:
+1. **Cursor: yes.** A visible cursor moves to each stage and hovers it. `bob-scene/assets/cursor.png` exists; check whether the Figma frames draw a cursor before reusing it, and do not invent other UI.
+2. **Transition: flat morph.** The card stays flat. The hovered panel widens, the others narrow, content cross-fades. No blueprint or isometric treatment.
+3. **Loop between stage 01 and stage 02** while the viewer is on the section. It starts when they land on it. The author did not say whether the rail returns to the default (both open) layout between the two hovers. Follow the original brief ("expanding and contracting"): each hovered panel contracts, then the next one expands.
+4. **Reduced motion / default pose:** a hovered state, not the default rail. Use 2a (stage 01 expanded) for slide 18 and beat 3 for slide 19. The author left the choice to me and confirmed the plan, so treat both as settled.
+
+Nothing in this note is waiting on the author. The only judgment call left to the agent is the zoom's scroll length on slide 19, which should come from the pacing worksheet.
+
+**This overrides a rule in the animation skill.** The skill says scroll is the only clock, with no autoplay or timers. The hover loop is time-based, and the author asked for it. Keep it confined to this one beat: the loop runs only while the section is in view, stops and resets when it leaves, and everything else on the page stays scroll-driven. Do not generalise it.
+
+Proposed by me and **confirmed by the author** after an explanation:
+5. **Rail height jump.** The default rail is 273.1px tall and the hover rail is 283.8px, so everything below the rail moves down 10.7px while a stage is hovered. Proposal: animate the rail's height with the same easing as the width change, let the content below move with it, and keep the card's top edge fixed (the Figma frames re-centre the card, which would make the whole card bob up and down 6px on every loop).
+6. **Slide 19 zoom.** Proposal: when the viewer scrolls from slide 18 to slide 19, the loop stops, the rail settles to the default layout, then the same card scales 1.6x onto the numbers block (no cut). Give the zoom a short motion window followed by a rest for the sentence to be read on. Pick the exact scroll length with the pacing worksheet and `pacing-audit.js`; do not guess it.
 
 ## What I did not verify
 

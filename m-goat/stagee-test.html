@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stage E test</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="scene.css">
+<link rel="stylesheet" href="stagee.css">
+<style>
+  html, body { margin: 0; background: #161616; color: #f4f4f4; font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: grid; grid-template-columns: 720px 1fr; height: 100vh; }
+  #scene { width: 720px; height: 1024px; }
+  #scene.asm { background: #262626; }          /* the dark stage colour the host theme would supply (dark tokens live in stagec.css; this page must not depend on it) */
+  #ctl { padding: 16px; } #ctl input { width: 100%; } output { font-variant-numeric: tabular-nums; }
+  body.bare #ctl { display: none; }
+</style>
+</head>
+<body>
+<!-- Scrub page for Stage E. ?v=<local vh> sets the position, ?d=0 hides Stage D's card (the hand-over ghost), ?bare=1 hides the slider (so a 720 x 1024 screenshot is exactly the stage). -->
+<div id="wrap"><div id="scene" data-theme="dark"></div><div id="ctl"><label>local scroll (vh) <output id="o">0</output><input id="r" type="range" min="0" max="140" step="0.25" value="0"></label></div></div>
+<script src="stagee-data.js"></script>
+<script src="assembly-engine.js"></script>
+<script src="expansion-piece.js"></script>
+<script src="stagee-piece.js"></script>
+<script>
+(function () {
+  const TT = STAGEE.TIMING, MAX = TT.MAX, vh = t => t * MAX, tOf = v => v / MAX;
+  const q = new URLSearchParams(location.search);
+  if (q.get("bare") === "1") document.body.classList.add("bare");
+  document.getElementById("r").max = MAX;
+  const piece = StageePiece.make({ vh, T: TT });
+  const FULL = { x: 0, y: 0, w: 720, h: 1024 };
+  const SCENE = window.SCENE = {
+    ariaLabel: "Stage E test", hud: false, grid: false, fit: 1,
+    frames: { stage: { w: 720, h: 1024 } },
+    pieces: [], camera: [{ t: 0, rx: 0, rz: 0, s: 0.8 }, { t: 1, rx: 0, rz: 0, s: 0.8 }]
+  };
+  // Stage D's REAL last frame (expansion-piece.js, read-only use): the card at slide 19's pose. It gets exactly the keys STAGEE.handover.d tells the wiring step to append.
+  if (q.get("d") !== "0") {
+    const D = ExpansionPiece.make({ clock: () => 0, enter: () => 1, zoom: () => 1, reduced: false });
+    const dk = STAGEE.handover.d.keys.map(k => { const o = { t: tOf(k.vh) }; ["x", "y", "o", "e"].forEach(p => { if (k[p] !== undefined) o[p] = k[p]; }); return o; });
+    SCENE.pieces.push({ id: "expansion", label: "APM expansion card (Stage D, last frame)", kind: "media", depth: 21, rects: { r: FULL }, html: D.html, update: D.update,
+                        keys: [{ t: 0, x: 0, y: 0, z: 0, o: 1, f: 1, rect: "r" }].concat(dk) });
+  }
+  const e = STAGEE.handover.e;
+  SCENE.pieces.push({ id: e.piece, label: "Next steps card", kind: "media", depth: 22, rects: { r: FULL }, html: piece.html, update: piece.update,
+                      keys: [{ t: 0, x: 0, y: 0, z: 0, o: 1, f: 1, rect: "r" }] });
+  const STORY = { title: "Stage E", beats: [{ id: "next", range: [0, 1], theme: "dark", title: "Next steps" }] };
+  const scene = AssemblyScene.mount(document.getElementById("scene"), { scene: SCENE, story: STORY });
+  const r = document.getElementById("r"), o = document.getElementById("o");
+  const go = v => { o.textContent = v; scene.render(v / MAX); };
+  r.addEventListener("input", () => go(+r.value));
+  const v0 = q.get("v") !== null ? +q.get("v") : 0; r.value = v0;
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(() => { go(v0); document.title = "ready"; }));
+  window.__go = go;
+})();
+</script>
+</body>
+</html>

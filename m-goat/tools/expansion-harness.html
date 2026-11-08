@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Expansion piece harness</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@400&display=swap">
+<style>
+  body { margin: 0; background: #1b1b1b; color: #ddd; font: 13px system-ui, sans-serif; }
+  #stage { position: relative; width: 720px; height: 1024px; background: #262626; overflow: hidden; margin: 0 auto; }
+  #ctl { position: fixed; left: 8px; top: 8px; z-index: 9; background: #000a; padding: 6px 8px; border-radius: 4px; line-height: 22px; }
+  #ctl label { margin-right: 10px; }
+  #prev { position: absolute; inset: 0; }
+  #prev i { position: absolute; background: #171717; border: 1px solid #333; }
+</style></head><body>
+<div id="ctl">
+  enter <input id="se" type="range" min="0" max="1000" value="1000" style="width:200px"> <span id="ve">1</span>
+  zoom <input id="sz" type="range" min="0" max="1000" value="0" style="width:200px"> <span id="vz">0</span><br>
+  <label><input id="play" type="checkbox"> play clock</label> clock ms <input id="ms" type="number" value="0" step="100" style="width:80px"> <span id="cv"></span>
+  <label><input id="red" type="checkbox"> reduced</label>
+</div>
+<div id="stage"><div id="prev"></div><div id="body" style="position:absolute;inset:0"></div></div>
+<script src="../expansion-piece.js"></script>
+<script>
+  // the three cards of slide 17 (Figma 208:9293), shown only as a ghost of the previous beat's pose behind the morph
+  const q = new URLSearchParams(location.search);
+  const S = { e: q.has("e") ? +q.get("e") : 1, z: q.has("z") ? +q.get("z") : 0, ms: q.has("ms") ? +q.get("ms") : 0, play: q.has("play") };
+  let t0 = 0, playing = false, reduced = q.has("reduced");
+  const clock = () => S.ms;
+  let piece, body = document.getElementById("body");
+  function build() { piece = ExpansionPiece.make({ clock, enter: t => S.e, zoom: t => S.z, reduced }); body.innerHTML = piece.html; window.piece = piece; }
+  build();
+  const el = id => document.getElementById(id);
+  function draw() { piece.update(body, 0, 0); el("ve").textContent = S.e.toFixed(3); el("vz").textContent = S.z.toFixed(3); el("cv").textContent = Math.round(S.ms); el("se").value = S.e * 1000; el("sz").value = S.z * 1000; el("ms").value = Math.round(S.ms); }
+  window.setState = (o) => { Object.assign(S, o); draw(); };
+  el("se").oninput = e => setState({ e: e.target.value / 1000 });
+  el("sz").oninput = e => setState({ z: e.target.value / 1000 });
+  el("ms").oninput = e => setState({ ms: +e.target.value });
+  el("red").checked = reduced; el("red").onchange = e => { reduced = e.target.checked; build(); draw(); };
+  let last = 0;
+  function raf(ts) { if (el("play").checked) { if (!playing) { playing = true; last = ts; } S.ms += ts - last; last = ts; draw(); } else playing = false; requestAnimationFrame(raf); }
+  if (S.play) el("play").checked = true;
+  requestAnimationFrame(raf);
+  draw();
+</script></body></html>

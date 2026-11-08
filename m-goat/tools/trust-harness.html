@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trust piece harness</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  html,body{margin:0;background:#111;color:#ddd;font:13px system-ui}
+  #bar{position:fixed;left:740px;top:12px;width:420px}
+  #bar input{width:100%} #out{font:12px ui-monospace,monospace;margin-top:6px}
+  #stage{position:relative;width:720px;height:1024px;background:#262626;overflow:hidden}
+  #body{position:absolute;inset:0}
+</style></head><body>
+<div id="stage"><div id="body"></div></div>
+<div id="bar"><input id="s" type="range" min="0" max="1000" value="1000"><div id="out"></div></div>
+<script src="../trust-piece.js"></script>
+<script>
+  const P = TrustPiece.make({});
+  const body = document.getElementById('body'); body.innerHTML = P.html;
+  const s = document.getElementById('s'), out = document.getElementById('out');
+  window.render = t => { P.update(body, {}, t); s.value = Math.round(t * 1000); out.textContent = 't=' + t.toFixed(3) + '  vh=' + (t * P.TOTAL_VH).toFixed(1); };
+  s.oninput = () => render(s.value / 1000);
+  const q = new URLSearchParams(location.search); render(q.has('t') ? +q.get('t') : 1);
+</script></body></html>
