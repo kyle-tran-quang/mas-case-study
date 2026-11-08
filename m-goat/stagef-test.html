@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stage F test</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="scene.css">
+<link rel="stylesheet" href="stagef.css">
+<style>
+  html, body { margin: 0; background: #161616; color: #f4f4f4; font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: grid; grid-template-columns: 720px 1fr; height: 100vh; }
+  #scene { width: 720px; height: 1024px; }
+  #scene.asm { background: #f4f4f4; }
+  #ctl { padding: 16px; } #ctl input { width: 100%; } output { font-variant-numeric: tabular-nums; }
+  body.bare #ctl { display: none; }
+</style>
+</head>
+<body>
+<!-- Scrub page for the Stage F window piece alone (flat camera). ?v=<local vh> sets the position, ?bare=1 hides the slider so a 720 x 1024 screenshot is exactly the stage. -->
+<div id="wrap"><div id="scene" data-theme="light"></div><div id="ctl"><label>local scroll (vh) <output id="o">0</output><input id="r" type="range" min="0" max="416" step="0.25" value="0"></label></div></div>
+<script src="stagef-data.js"></script>
+<script src="assembly-engine.js"></script>
+<script src="stagef-piece.js"></script>
+<script>
+(function () {
+  const TT = STAGEF.TIMING, MAX = TT.MAX, vh = t => t * MAX;
+  const q = new URLSearchParams(location.search);
+  if (q.get("bare") === "1") document.body.classList.add("bare");
+  document.getElementById("r").max = MAX;
+  const piece = StagefPiece.make({ vh, T: TT });
+  const W = STAGEF.GEO.win;
+  const SCENE = window.SCENE = {
+    ariaLabel: "Stage F test", hud: false, grid: false, fit: 1,
+    frames: { stage: { w: 720, h: 1024 } },
+    pieces: [{ id: "stagef-win", label: "Maturity map window", kind: "media", depth: 10, rects: { r: { x: W.x, y: W.y, w: W.w, h: W.h } }, html: piece.html, update: piece.update,
+               keys: [{ t: 0, x: 0, y: 0, z: 0, o: 1, f: 1, rect: "r" }] }],
+    camera: [{ t: 0, rx: 0, rz: 0, s: 0.8 }, { t: 1, rx: 0, rz: 0, s: 0.8 }]
+  };
+  const STORY = { title: "Stage F", beats: [{ id: "f", range: [0, 1], theme: "light", title: "Maturity map" }] };
+  const scene = AssemblyScene.mount(document.getElementById("scene"), { scene: SCENE, story: STORY });
+  const r = document.getElementById("r"), o = document.getElementById("o");
+  const go = v => { o.textContent = v; scene.render(v / MAX); };
+  r.addEventListener("input", () => go(+r.value));
+  const v0 = q.get("v") !== null ? +q.get("v") : 178; r.value = v0;
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(() => { go(v0); document.title = "ready"; }));
+  window.__go = go;
+})();
+</script>
+</body>
+</html>

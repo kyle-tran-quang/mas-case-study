@@ -119,3 +119,22 @@ Stages 1 to 5 for each path helps executives pinpoint exact gaps in their hardwa
 
 #Usability testing and improvements
 *to be continued*
+
+**Draft bridge (for review):**
+
+We built the assessment to fix one number: 90% of clients use only 10% of Maximo. Usability testing is where we find out whether it moves that number.
+
+**The metric we'll track: Utilization gap closed.**
+
+The share of a client's Maximo capability that is in use, measured before and after they act on the next steps report.
+
+* **Baseline:** [X%] of capability in use at assessment
+* **After 90 days:** [X%] in use, from [X] recommended actions taken
+* **Why it matters:** The IBM Institute for Business Value benefits we show (40% more ROI on 10–15% more utilization) only count if the client actually adopts the change.
+
+**Context for the same metric (company level, not M-GRAT attribution):**
+
+* ALM SaaS new annual contract value grew 88% in Q3 2026, and Maximo revenue grew 11%.
+* Leadership is pushing AI-enabled, recurring-value solutions. This assessment is one way to move existing clients toward that.
+
+Use these only as framing. The numbers belong to ALM, not to this tool, so don't present them as results of the assessment.

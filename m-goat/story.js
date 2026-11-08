@@ -13,7 +13,7 @@
      Stage B  beats 8-10  7-layer stack (blueprint) -> journey simulator -> first iteration (blueprint)
      Stage C  beat 11     second iteration: full-screen generation, slide left (light -> dark), scroll the form, zoom on question 1     <- stage-c.js
      Stage D  beats 12-15 report -> trust + disclosure -> APM expansion card (hover loop) -> numbers zoom     <- stage-d.js
-     Stage E  beats 16-21 next steps -> roles -> maturity maps -> comparison -> to be continued
+     Stage E  beats 16-17 next steps card -> zoom on "How to implement" (slides 20a, 20b)     <- stage-e.js   (slides 21 maturity maps, 22 to be continued: not built yet)
 
    PACING (see the worksheet shown at Gate 3): every text anchor sits in a REST (stage still), sized 20vh + 0.6vh per word (cap 60). All motion windows live in
    TIMING below (vh of scroll); scene-data.js reads them from there.
@@ -21,7 +21,7 @@
    ========================================================================= */
 (function () {
   window.TIMING = {
-    MAX: 1480,                                       // MAX = scrollable distance (scrollVh - 100). Stage A ends at 472, Stage B (TIMING.B) runs 472-778, Stage C (TIMING.C) 778-1106, Stage D (TIMING.D) 1106-1480.
+    MAX: 1620,                                       // MAX = scrollable distance (scrollVh - 100). Stage A ends at 472, Stage B (TIMING.B) runs 472-778, Stage C (TIMING.C) 778-1106, Stage D (TIMING.D) 1106-1480, Stage E (TIMING.E) 1480-1620.
     // beat 1: the ring DRAWS IN during the hero dissolve (INTRO time: 0..1 across the hero's introVh scroll, rendered by the under-stage in index.html), so it is complete
     // when the layout takes over at t = 0 and the first sentence is read over a finished, still graphic.
     ring: { drawIntro: [0.62, 0.92], dim: [21, 50] },      // dim = the whole graphic eases to 50% (layout time, vh) as the dashboard arrives on top
@@ -82,7 +82,13 @@
       exp: [1324, 1352],
       zoom: [1392, 1437],
       end: 1480
-    }
+    },
+
+    /* ---- STAGE E (stage-e.js + stagee-piece.js; beats 16-17 = Figma slides 20a, 20b). Local windows live in stagee-data.js (STAGEE.TIMING, local vh); start = the first vh after Stage D's final rest.
+       Anchors: e1 1533 | e2 1600 (gaps 75 from D's 1458, then 67).
+       16 next steps  arrive 1480-1514 (D's card leaves up, E's card rises: one pan) | Rest 1514-1552 (anchor 1533, 23 words)
+       17 implement   zoom 1.4x onto "How to implement" 1552-1580, highlight 1562-1576 | Rest 1580-1620 (anchor 1600, 26 words) */
+    E: { start: 1480 }
   };
 })();
 
@@ -91,7 +97,7 @@ window.STORY = {
   id: "m-goat-v2",
   title: "M-GOAT: Maximo Growth Opportunities Assessment Tool",
   introVh: 180,              // extra scroll (vh) for the hero -> stage transition, before the beats start (hero-transition.js). 0 = none.
-  scrollVh: 1580,            // MAX + 100
+  scrollVh: 1720,            // MAX + 100
   chapters: 12,              // number of progress ticks (Figma SectionNav)
   smoothing: 140,            // ms. The scene eases toward the scroll position (time constant). 0 = 1:1 with scroll.
   mode: "continuous",
@@ -233,11 +239,25 @@ window.STORY = {
       motion: "Flat morph (1324-1352vh): the three cards converge into the APM expansion card (Figma 231:6367); stage 01 then stage 02 open under a cursor, looping on a free clock while the card is on stage."
     },
     {
-      id: "numbers-zoom", hold: true, chapter: 10, range: [f(1415), 1], snap: f(1458), pose: f(1458), theme: "dark", title: "Value in numbers",
+      id: "numbers-zoom", hold: true, chapter: 10, range: [f(1415), f(1480)], snap: f(1458), pose: f(1458), theme: "dark", title: "Value in numbers",
       copy: [
         "For each maturity stage, I made sure that every action displays clear financial impact, benefits and ROI metrics (based on IBM Institute for Business Value) so the reader has instant proof to secure leadership buy-in."
       ],
       motion: "Flat zoom (1392-1437vh): the card scales 1.6x onto the Potential outcomes numbers (Figma 231:6650). The right edge clipping is the author's known Figma quirk."
+    },
+
+    /* ---------------- STAGE E. Copy is the author's Figma wording (slides 20a, 20b of frame 208:5718). Stage: stage-e.js, windows: STAGEE.TIMING shifted by TIMING.E.start. ---------------- */
+    {
+      id: "next-steps", hold: true, chapter: 10, range: [f(1480), 1], snap: f(1533), pose: f(1533), theme: "dark", title: "Next steps",
+      // one beat, two text slots (index.html `texts`): the stage never stops between them. The sentence changes as each hero starts (1480, 1552), see stagee-data.js "text swaps".
+      texts: [
+        { id: "e1", snap: f(1533), from: f(1480), to: f(1552), chapter: 10,
+          copy: ["In the next action steps, the system highlights a single top priority alongside two secondary steps so you always know where to start."] },
+        { id: "e2", snap: f(1600), from: f(1552), to: 1, chapter: 10,
+          copy: ["Each step explicitly tags responsible roles, like Asset Manager or Sys Admin, making it clear as to how to set up Maximo tasks with your team."] }
+      ],
+      copy: [],
+      motion: "Conveyor pan (1480-1514vh): the APM expansion card leaves upward as the Next steps card rises into place. Zoom (1552-1580vh): the card scales 1.4x onto How to implement, the other blocks dim to 25% and a blue frame appears (Figma 239:6833, 239:6889)."
     }
   ]
 };

@@ -14,6 +14,20 @@
 | **Platform** | Responsive web app, offline single-file HTML, print-ready PDF |
 | **Format** | Morphing split-stage case study: sticky 50% animated canvas, 50% minimal text |
 
+## Business Context
+
+Company-level ALM results from the Q4 2026 All Hands, reported for Q3 2026. These describe the ALM business overall, not M-GRAT. Use them as framing only, not as M-GRAT outcomes.
+
+| Metric | Reported value | Reported by |
+|---|---|---|
+| ALM revenue growth | 5% | Daniel Basto |
+| Maximo revenue growth | 11% | Daniel Basto |
+| New SaaS annual contract value growth | 88% | Daniel Basto |
+| Combined transactional + SaaS revenue | Above $50M, first Q3 to pass this level | Theo Winkelmann |
+| Q3 performance | Best third quarter in four years | Theo Winkelmann |
+
+**Context:** Leadership framed the year around scaling AI adoption, accelerating SaaS growth, and MAS 9.2 adoption. M-GRAT supports the same goal of helping customers get more value from what they already own.
+
 ## Format Rules
 
 1. **Text is minimal.** Each transition gets 1–2 sentences, no more.
@@ -84,7 +98,7 @@ flowchart LR
 
 ## Open Items
 
-* Fill in all `[placeholders]` (feedback summary, Act 3.3 sentence, outcome metrics) with real data. Don't publish estimates.
+* Fill in all `[placeholders]` (feedback summary, Act 3.3 sentence, outcome metrics) with real data. Don't publish estimates. The All Hands figures in Business Context are not substitutes for the M-GRAT outcome metrics.
 * **Future phase:** The Data Readiness dashboard I'm working on now. Decide whether it becomes an epilogue after 3.7, or a separate follow-up case study.
 
 ## Facts to Keep Accurate
