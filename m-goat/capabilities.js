@@ -134,7 +134,7 @@
       R.details.forEach((el, i) => { const s = (i / nD) * 0.08; el.style.opacity = (1 - sm(s, s + 0.12, p)) * (LEAF_DET.has(i) ? hand : ri(xs.details[i])); });
       R.keep.style.opacity = 1 - sm(0.18, 0.60, p);
       [...R.keep.children].forEach((el, i) => { el.style.opacity = ri(xs.keep[i]); });
-      R.others.forEach((el, i) => { const s = i * 0.012; el.style.opacity = (1 - sm(0.02 + s, 0.20 + s, p)) * ri(xs.others[i]); });
+      R.others.forEach((el, i) => { const s = i * 0.012; el.style.opacity = (1 - sm(0.02 + s, 0.20 + s, p)) * hand; });      // the ring piece draws these 6 nodes until the hand-off (th), then they take over at the same spots
       // ---- phase 2 (15-55%): arcs -> loop
       const ua = ease(clamp((p - 0.15) / 0.40, 0, 1));
       R.arcs.forEach((el, i) => {
@@ -145,6 +145,7 @@
       });
       // kept node: travels to the bottom of the left connector and turns red
       const rn = D.redNode;
+      R.node.style.opacity = hand;
       R.node.setAttribute("cx", f2(lerp(retained.c[0], rn.c[0], ua))); R.node.setAttribute("cy", f2(lerp(retained.c[1], rn.c[1], ua)));
       R.node.setAttribute("fill", mix(retained.fill, rn.fill, ua)); R.node.setAttribute("stroke", mix(retained.stroke, rn.stroke, ua));
       // ---- phase 3 (25-70%): shapes -> cards, stagger by row, both columns together

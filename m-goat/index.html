@@ -6,8 +6,10 @@
 <title>M-GOAT: Maximo Growth Opportunities Assessment Tool (Acts 1 and 2.3)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- IBM Plex Sans: Carbon tiles in the scene + hero description/meta. IBM Plex Mono Light Italic: hero title (Figma 82:8717). -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,300&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,300&family=IBM+Plex+Serif:wght@300&display=swap">
 <link rel="stylesheet" href="scene.css">
+<link rel="stylesheet" href="stage-b.css">
+<link rel="stylesheet" href="stagec.css">
 <style>
   /* Mikado (licensed, from /fonts) is the right-hand story column's font, per the author. The file name is the weight/style: Regular is 400. */
   @font-face { font-family: "Mikado"; src: url("../fonts/Mikado-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
@@ -46,7 +48,7 @@
   .intro-under.on { visibility: visible; }
   .intro-under .u-stage { position: relative; overflow: hidden; background: var(--bg); }
   .intro-under .u-col { background: var(--page); }
-  .intro-under .u-col section { opacity: var(--intro-copy, 0); transition: none; }   /* the first beat's text, fading in with the dissolve */
+  .intro-under .u-col section, .intro-under .u-col section.active { opacity: var(--intro-copy, 0); transition: none; }   /* .active (set below) would otherwise force opacity 1 */   /* the first beat's text, fading in with the dissolve */
   @media (max-width: 800px) { .intro-under { grid-template-columns: 1fr; grid-template-rows: 55vh 1fr; } }
 
   /* ---------- Split layout: scene (left, sticky) + story column (right) ---------- */
@@ -61,6 +63,8 @@
   .text-col section.active { opacity: 1; }
   .text-col p { margin: 0; font-size: 32px; line-height: normal; color: var(--text); font-weight: 400; }
   .text-col p.eyebrow { font-size: 16px; color: var(--muted); letter-spacing: 0; }
+  .text-col .hl-o { color: #fa680c; }                                       /* Figma highlight orange */
+  .text-col i { font-style: italic; }
   .progress { position: fixed; right: 36px; top: 50%; transform: translateY(-50%); width: 56px; padding: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 3;
               opacity: 0; pointer-events: none; transition: opacity .3s; }
   .progress.on { opacity: 1; }
@@ -109,9 +113,19 @@
 <script src="assembly-engine.js"></script>
 <script src="capabilities-data.js"></script>
 <script src="capabilities.js"></script>
-<script src="v1-ui.js"></script>
-<script src="v2-ui.js"></script>
+<script src="ring-piece.js"></script>
+<script src="handcard-piece.js"></script>
+<script src="handcard-to-diagram.js"></script>
 <script src="scene-data.js"></script>
+<script src="v1-ui.js"></script>
+<script src="stage-b.js"></script>
+<script src="stagec-data.js"></script>
+<script src="stagec-piece.js"></script>
+<script src="stage-c.js"></script>
+<script src="report-piece.js"></script>
+<script src="trust-piece.js"></script>
+<script src="expansion-piece.js"></script>
+<script src="stage-d.js"></script>
 <script src="hero-transition.js"></script>
 <script>
 (function () {
@@ -141,7 +155,7 @@
     const s = document.createElement("section");
     s.dataset.beat = b.id; s.style.top = `calc(${(b.snap ?? b.range[0]) * maxVh}vh + 50vh)`;
     if (b.eyebrow) { const e = document.createElement("p"); e.className = "eyebrow"; e.textContent = b.eyebrow; s.appendChild(e); }
-    b.copy.forEach(c => { const p = document.createElement("p"); p.textContent = c; s.appendChild(p); });
+    b.copy.forEach(c => { const p = document.createElement("p"); p.innerHTML = c; s.appendChild(p); });   // copy is author-written story.js text; it may carry <span class="hl-o"> / <i>
     return s;
   };
   // One text "slot" per section. A beat normally has one slot (its `copy`, on screen for the whole beat). A beat with `texts` has one slot per entry:
@@ -151,7 +165,7 @@
     if (b.texts && b.texts.length) {
       b.texts.forEach((t, i) => {
         const prev = b.texts[i - 1], next = b.texts[i + 1];
-        slots.push({ id: t.id, beat: b, snap: t.snap, copy: t.copy, eyebrow: t.eyebrow,
+        slots.push({ id: t.id, beat: b, snap: t.snap, copy: t.copy, eyebrow: t.eyebrow, chapter: t.chapter,
                      from: t.from ?? (prev ? (prev.snap + t.snap) / 2 : b.range[0]), to: t.to ?? (next ? (t.snap + next.snap) / 2 : b.range[1]) });
       });
     } else if (b.copy.length || b.eyebrow) slots.push({ id: b.id, beat: b, snap: b.snap ?? b.range[0], copy: b.copy, eyebrow: b.eyebrow, from: b.from ?? b.range[0], to: b.to ?? b.range[1] });
@@ -161,16 +175,18 @@
   // the real layout's top is at the viewport top then, so a section at `top: calc(snap * maxVh vh + 50vh)` sits where it will be after the swap.
   const underCol = document.getElementById("underCol"), firstBeat = STORY.beats.find(b => b.copy.length || b.eyebrow);
   if (underCol && firstBeat) { const u = buildSection(firstBeat); u.classList.add("active"); underCol.appendChild(u); }
-  // Progress ticks: one per beat (redrawn from the beat list, so the count always matches the story)
-  const ticks = STORY.beats.map(() => { const i = document.createElement("i"); prog.appendChild(i); return i; });
+  // Progress ticks: one per CHAPTER (Figma SectionNav has 12; several beats share a tick, see beat.chapter)
+  const ticks = Array.from({ length: STORY.chapters || STORY.beats.length }, () => { const i = document.createElement("i"); prog.appendChild(i); return i; });
 
   const scene = AssemblyScene.mount(document.getElementById("scene"), { scene: SCENE, story: STORY });
   const introUnder = document.getElementById('introUnder');
   const underScene = introVh > 0 ? AssemblyScene.mount(document.getElementById('underScene'), { scene: SCENE, story: STORY }) : null;
   if (underScene) underScene.render(0);                // frozen at t = 0: the first beat's skeleton
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const poses = STORY.beats.map(b => b.pose ?? b.snap ?? b.range[0]);
-  const anchors = STORY.beats.map(b => b.snap ?? b.range[0]);
+  // key poses for reduced motion: one per beat, or one per text slot when a beat has `texts` (Stage C: its stage changes between the slots)
+  const keyPoses = STORY.beats.flatMap(b => b.texts && b.texts.length ? b.texts.map(t => ({ pose: t.pose ?? t.snap, snap: t.snap })) : [{ pose: b.pose ?? b.snap ?? b.range[0], snap: b.snap ?? b.range[0] }]);
+  const poses = keyPoses.map(k => k.pose);
+  const anchors = keyPoses.map(k => k.snap);
 
   // scroll is the ONLY clock. The scene section starts below the hero, so progress is measured from the top of the split layout.
   const target = () => clamp(-layout.getBoundingClientRect().top / Math.max(1, layout.offsetHeight - innerHeight), 0, 1);
@@ -181,6 +197,10 @@
   const introPx = () => (introVh / 100) * innerHeight;
   const qNow = () => introVh > 0 ? clamp(scrollY / introPx(), 0, 1) : 1;
   function drawHero(q) {
+    // the ring's draw-in plays across the hero dissolve (TIMING.ring.drawIntro, as a fraction of q). This runs BEFORE any early return so that introT is 1 whenever the hero
+    // is done (a reload part-way down, an anchor jump, scrolling back up): the ring is then fully drawn instead of stuck at its last intro value.
+    const dI = TIMING.ring.drawIntro, intro = Math.min(1, Math.max(0, (q - dI[0]) / (dI[1] - dI[0])));
+    if (SCENE.introT !== intro) { SCENE.introT = intro; last = -1; if (underScene) underScene.render(0); }
     if (!HT || !R0) return;
     const S = HT.state(q, R0, R1);
     const done = introVh <= 0 || S.done;
@@ -193,61 +213,34 @@
     heroBox.style.width = S.box.w + "px"; heroBox.style.height = S.box.h + "px"; heroBox.style.transform = `translate(${S.box.x}px,${S.box.y}px)`;
     tint.style.opacity = Math.min(1, S.u * 0.9);                                       // image blue-grey -> stage grey as the box lands
     if (introUnder) introUnder.style.opacity = S.scene.opacity;
+
     if (introUnder) introUnder.style.setProperty("--intro-copy", S.copy.opacity);
   }
 
+  /* ---- the ONE time-based exception: the hand card's pill loop (author's decision). It runs on its own clock while the card is on stage (SCENE.handOn(shown)) and is idle
+     otherwise, so the page is scroll-driven everywhere else. Reduced motion: no loop, the card rests on its first frame. */
+  let handT0 = 0, handNow = 0;
+  SCENE.handClock = () => handT0 ? handNow - handT0 : 0;
+  const handTick = (ts, t) => {
+    const on = !reduce && SCENE.handOn && SCENE.handOn(t);
+    if (on) { if (!handT0) handT0 = ts; handNow = ts; } else handT0 = 0;
+    return on;
+  };
   function paint(t) {
-    if (t === last) return; last = t;
+    if (t === last && !handT0) return; last = t;
     const { beat } = scene.render(t);
+    if (SCENE.afterRender) SCENE.afterRender(t);              // Stage C: the full-screen overlay (stage-c.js)
     const cur = STORY.beats.find(b => b.id === beat);
-    layout.dataset.theme = cur ? cur.theme : "light";
-    ticks.forEach((i, n) => i.classList.toggle("act", STORY.beats[n].id === beat));
+    // Stage C plays on a light cover first: the page stays light until its backdrop turns dark (layout.dataset.cdark, set by stage-c.js), whatever the beat says
+    layout.dataset.theme = cur ? (cur.id === "second" && layout.dataset.cdark !== "1" ? "light" : cur.theme) : "light";
+    prog.dataset.theme = layout.dataset.theme;                // the nav is a sibling of the layout, so it gets the theme itself (active tick = the text colour, so it never vanishes on the dark page)
+    const mine = slots.filter(sl => sl.beat === cur);
+    const slot = mine.find(sl => t >= sl.from && t < sl.to) || mine[mine.length - 1] && (t >= mine[mine.length - 1].to ? mine[mine.length - 1] : mine.find(sl => t < sl.from) || mine[0]);   // inside a slot -> that slot; past the last -> the last (the end of the page); before the first -> the first
+    const chap = slot && slot.chapter !== undefined ? slot.chapter : (cur ? cur.chapter ?? 0 : -1);          // a text slot may carry its own chapter (Stage C: slides 13 / 14 / 15)
+    ticks.forEach((i, n) => i.classList.toggle("act", !!cur && chap === n));
   }
-  /* ---- v1 auto-scroll. The scene is a pure function of scroll t, with ONE exception: v1's form scrolls itself (SCENE.v1Scroll, 0..1).
-     idle -> playing   when scroll reaches STORY.auto.at (before the v1 -> v2 morph): the page is held at that exact spot and the form scrolls for durationMs.
-     playing -> skipping  on the first wheel / touch / key / scrollbar move after graceMs: the form runs to its end in skipMs and the input goes through to the page.
-     -> done           the form is at its end. Scrolling back above `at` by resetVh re-arms it. Reduced motion: no playback, the form shows its end. */
-  const AUTO = STORY.auto, MORPH_T = TIMING.v2.morph[0] / TIMING.MAX;
-  const A = { state: "idle", p: 0, t0: 0, from: 0, lockY: 0, graceUntil: 0, raf: 0 };
-  const NAV = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " ", "Spacebar"]);
-  SCENE.v1Scroll = reduce ? 1 : 0;
-  const setP = p => { A.p = SCENE.v1Scroll = p; last = -1; };                       // last = -1 forces the next paint to redraw even if t did not change
-  const yAt = t => scrollY + layout.getBoundingClientRect().top + t * (layout.offsetHeight - innerHeight);   // inverse of target()
-  function onInput(e) {
-    if (e.type === "keydown" && !NAV.has(e.key)) return;
-    if (performance.now() < A.graceUntil) { if (e.cancelable) e.preventDefault(); return; }
-    skipAuto();
-  }
-  const onScroll = () => {
-    if (A.state !== "playing" || Math.abs(scrollY - A.lockY) <= 2) return;
-    if (performance.now() < A.graceUntil) scrollTo({ top: A.lockY, behavior: "instant" }); else skipAuto();
-  };
-  const listen = on => {
-    const m = on ? addEventListener : removeEventListener;
-    m("wheel", onInput, { passive: false }); m("touchstart", onInput, { passive: false }); m("touchmove", onInput, { passive: false });
-    m("keydown", onInput); m("scroll", onScroll, { passive: true });
-  };
-  function autoFrame(ts) {
-    A.raf = 0;
-    if (A.state === "playing") { const u = clamp((ts - A.t0) / AUTO.durationMs, 0, 1); setP(-(Math.cos(Math.PI * u) - 1) / 2); if (u >= 1) finishAuto(); }
-    else if (A.state === "skipping") { const u = clamp((ts - A.t0) / AUTO.skipMs, 0, 1); setP(A.from + (1 - A.from) * (1 - Math.pow(1 - u, 3))); if (u >= 1) finishAuto(); }
-    paint(shown);
-    if (A.state === "playing" || A.state === "skipping") A.raf = requestAnimationFrame(autoFrame);
-  }
-  function startAuto() {
-    A.state = "playing"; A.t0 = performance.now(); A.graceUntil = A.t0 + AUTO.graceMs; A.lockY = yAt(AUTO.at);
-    scrollTo({ top: A.lockY, behavior: "instant" });
-    listen(true); A.raf = requestAnimationFrame(autoFrame);
-  }
-  function skipAuto() { if (A.state !== "playing") return; A.state = "skipping"; A.from = A.p; A.t0 = performance.now(); listen(false); }
-  function finishAuto() { A.state = "done"; listen(false); setP(1); }
-  function resetAuto() { listen(false); cancelAnimationFrame(A.raf); A.raf = 0; A.state = "idle"; setP(0); }
-  function autoStep(goal) {
-    if (reduce) { SCENE.v1Scroll = 1; return; }
-    if (goal < AUTO.at - AUTO.resetVh / TIMING.MAX) { if (A.state !== "idle") resetAuto(); }
-    else if (A.state === "idle" && goal >= AUTO.at) { if (goal < MORPH_T) startAuto(); else { A.state = "done"; setP(1); } }   // arriving past the morph (reload, anchor jump): no playback
-  }
-  window.__mgoat = { auto: () => ({ state: A.state, p: A.p }) };                    // read-only, for tests
+  // (the v1 form auto-scroll belongs to Stage B and is re-added there)
+  const autoStep = () => {};
 
   function tick(ts) {
     raf = 0; const dt = prevTs ? Math.min(64, ts - prevTs) : 16; prevTs = ts;
@@ -266,8 +259,9 @@
     // exponential ease toward the scroll position, frame-rate independent: shown += (goal - shown) * (1 - e^(-dt/tau))
     shown = tau > 0 ? shown + (goal - shown) * (1 - Math.exp(-dt / tau)) : goal;
     if (Math.abs(goal - shown) < 0.0004) shown = goal;
+    const handOn = handTick(ts, shown);
     paint(shown);
-    if (shown !== goal) req();                          // keep animating until the scene catches up
+    if (shown !== goal || handOn) req();                // keep animating until the scene catches up, and while the hand card's own loop is running
   }
   const req = () => { if (!raf) raf = requestAnimationFrame(tick); };
   addEventListener("scroll", req, { passive: true });

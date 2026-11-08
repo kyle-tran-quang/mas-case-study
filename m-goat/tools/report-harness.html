@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Report piece harness</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@300&display=swap">
+<style>
+  body { margin: 0; background: #1b1b1b; color: #ddd; font: 13px system-ui, sans-serif; }
+  #stage { position: relative; width: 720px; height: 1024px; background: #262626; overflow: hidden; margin: 0 auto; }
+  #ctl { position: fixed; left: 8px; top: 8px; z-index: 9; background: #000a; padding: 6px 8px; border-radius: 4px; }
+  #prev { position: absolute; left: 20px; top: 326.4px; width: 680px; height: 420px; background: #161616; }
+  #prev i { position: absolute; left: 0; top: 0; width: 231.2px; height: 419.6px; background: #333; }
+</style></head><body>
+<div id="ctl"><input id="s" type="range" min="0" max="1000" value="1000" style="width:420px"> t=<span id="v">1</span></div>
+<div id="stage"><div id="body" style="position:absolute;inset:0"></div></div>
+<script src="../report-piece.js"></script>
+<script>
+  const piece = ReportPiece.make({ enter: [0, 1] });
+  const body = document.getElementById("body"); body.innerHTML = piece.html;
+  window.setT = t => { piece.update(body, 0, t); document.getElementById("v").textContent = t.toFixed(3); document.getElementById("s").value = t * 1000; };
+  document.getElementById("s").oninput = e => setT(e.target.value / 1000);
+  const q = new URLSearchParams(location.search); setT(q.has("t") ? +q.get("t") : 1);
+  window.piece = piece;
+</script></body></html>

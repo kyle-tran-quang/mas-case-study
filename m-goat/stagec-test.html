@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stage C test (beat 11)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="scene.css">
+<link rel="stylesheet" href="stagec.css">
+<style>
+  html, body { margin: 0; background: #161616; color: #f4f4f4; font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: grid; grid-template-columns: 1440px 1fr; height: 100vh; }
+  #scene { width: 1440px; height: 1024px; }
+  #ctl { padding: 16px; } #ctl input { width: 100%; } output { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div id="wrap"><div id="scene" data-theme="dark"></div><div id="ctl"><label>local scroll (vh) <output id="o">0</output><input id="r" type="range" min="0" max="328" step="0.5" value="0"></label></div></div>
+<script src="stagec-data.js"></script>
+<script src="assembly-engine.js"></script>
+<script src="stagec-piece.js"></script>
+<script>
+(function () {
+  const TT = STAGEC.TIMING, MAX = TT.MAX, vh = t => t * MAX;
+  const piece = StagecPiece.make({ vh, T: TT });
+  const SCENE = window.SCENE = {
+    ariaLabel: "Stage C test", hud: false, grid: false, fit: 1,
+    frames: { stage: { w: 1440, h: 1024 } },
+    pieces: [{ id: "stagec", label: "Second iteration", kind: "media", depth: 0, rects: { r: { x: 0, y: 0, w: 1440, h: 1024 } }, html: piece.html, update: piece.update, keys: [] }],
+    camera: [{ t: 0, rx: 0, rz: 0, s: 0.8 }, { t: 1, rx: 0, rz: 0, s: 0.8 }]
+  };
+  SCENE.pieces[0].keys.push({ t: 0, x: 0, y: 0, z: 0, o: 1, f: 1, rect: "r" });
+  const STORY = { title: "Stage C", beats: [{ id: "second", range: [0, 1], theme: "dark", title: "Second iteration" }] };
+  const scene = AssemblyScene.mount(document.getElementById("scene"), { scene: SCENE, story: STORY });
+  const r = document.getElementById("r"), o = document.getElementById("o");
+  const go = v => { o.textContent = v; scene.render(v / MAX); };
+  r.addEventListener("input", () => go(+r.value));
+  const q = new URLSearchParams(location.search).get("v");
+  const v0 = q !== null ? +q : 0; r.value = v0;
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(() => { go(v0); document.title = "ready"; }));
+  window.__go = go;
+})();
+</script>
+</body>
+</html>
