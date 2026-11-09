@@ -463,6 +463,7 @@ export function generate(el, options = {}) {
       try { const M = measure(el, opts); G = buildOverlay(el, M, opts); G.prev = prev; }
       catch (e) { if (el.__tGenLayer) el.__tGenLayer.remove(); G = null; console.warn("UIGeneration: could not build the overlay, showing the element", e); return finish(); }
       const D = Math.max(400, +opts.duration || DEFAULTS.duration), t0 = performance.now();
+      frame(G, 0, 0, D); // buildOverlay() leaves the dots, outline and guides fully visible; tick() only runs a frame later, so without this the first paint is a flash of the finished blueprint
       const tick = (now) => {
         if (stopped) return;
         const t = now - t0, p = t / D;

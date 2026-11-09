@@ -8,7 +8,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: "npx vite --no-open",
-    url: "http://localhost:5173/m-goat/",
+    url: "http://localhost:5173/work/m-goat",
     reuseExistingServer: true
   }
 });
