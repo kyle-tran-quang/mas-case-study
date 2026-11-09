@@ -73,3 +73,17 @@
 /* ---- cursor + tap ring (drawn only) */
 .asm [data-html] .sf-cur { position: absolute; left: 0; top: 0; display: block; transform-origin: 0 0; opacity: 0; filter: drop-shadow(0 .6px .8px rgba(0, 0, 0, .35)); }
 .asm [data-html] .sf-ring { position: absolute; left: 0; top: 0; box-sizing: border-box; border-radius: 50%; border: .8px solid #0f62fe; background: rgba(15, 98, 254, .12); opacity: 0; }
+
+.asm [data-html] .sf-face { position: absolute; inset: -.5px; border: 1px solid; box-sizing: border-box; pointer-events: none; }
+
+/* ---- the "// Maturity pathways" card as slabs (stagef-card.js). Each piece = a face (fill + 1px outline) and a real layer on top (strips, label, title).
+   Sizes are Figma px of 333:6551 (the card is 510 x 590 at stage (105, 217)); the pieces are positioned by the engine, so everything here is piece-local. */
+.asm [data-html] .sf-ew { position: absolute; inset: 0; }                                  /* Stage E's card, wrapped so the flip can rotate it */
+.asm [data-html] .sf-wrap { position: absolute; inset: 0; }
+.asm [data-html] .sf-real { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.asm [data-html] .sf-ttl { position: absolute; left: 0; top: 0; font: italic 400 24px/31px "IBM Plex Mono", ui-monospace, monospace; color: #4589ff; white-space: nowrap; }       /* 333:6552 */
+.asm [data-html] .sf-st { position: absolute; top: 0; bottom: 0; display: block; }       /* the five white strips on the APM / FSM bands: x and opacity inline */
+.asm [data-html] .sf-bl { position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: #fff; display: block; }       /* 333:6572 / 6574: 1px white left stroke */
+.asm [data-html] .sf-lbl { position: absolute; font: 400 16px/21px "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; }   /* 333:6555 etc. */
+.progress[data-flip] i { background: var(--tick); }
+.progress[data-flip] i.act { background: var(--tick-act); }

@@ -49,8 +49,7 @@
       return ((ay * u + by) * u + cy) * u;
     };
   }
-  const E_HOUSE = bezier(0.65, 0, 0.1, 1);       // a cursor trip inside the shot
-  const E_ENTER = bezier(0.1, 0.8, 0.3, 0.95);   // the cursor arriving from off-frame, already moving
+  const E_TRIP  = bezier(0.5, 0, 0.2, 1.12);     // a cursor trip between the two stages: eases out, overshoots the target by a few px and settles back (a hand stopping a mouse)
   const E_OPEN  = bezier(0.05, 0.85, 0.3, 1);    // a panel opening: arrives fast, long soft settle
   const E_CLOSE = bezier(0.4, 0, 0.2, 1);        // a panel closing: quicker, symmetric
 
@@ -63,14 +62,16 @@
     H2: { w: [36.59, 351.73, 36.59, 36.59, 36.59], gap: 5.97, h: 283.78 }               // 231:6613
   };
   const CARD_H_D = 802.939;                                                              // 66.25 + 273.125 + 23 + 266.5 + 23 + 133.814 + 17.25
+  const CARD_H_S1 = 813.59, CARD_H_S2 = 795.84;                                          // card height with stage 01 open (231:6448 hover) / stage 02 open (231:6534)
   const BASE_LOW = RAIL_Y + RAIL.D.h + GAP_V;                                            // 362.375: where "What it takes" starts in the default pose
   // numbers zoom (231:6650 > 233:6722): the card at stage (23, -411.059), 878.524 wide -> scale 878.524 / 552
   const ZOOM = { x: 23, y: -411.059, s: 878.524 / 552 };
   // union of the three slide-17 cards (208:9293 children, absoluteBoundingBox relative to that stage): progress bars (60,315.46,600x211.22), tabs+panel (275,563,385x255.37),
   // maturity banner (60,139,600x140.46), vertical tabs (60,563,184x255)  ->  x 60..660, y 139..818.37
   const UNION = { x: 60, y: 139, w: 600, h: 818.37 - 139 };
-  // cursor spots, stage px. Both sit in empty panel space (right of the round button, below the stage name) and OUTSIDE where the description text lands once the panel opens.
-  const P1 = [181.25, 412.25], P2 = [478, 436], ENTRY = [-30, 600], EXIT = [770, 560];
+  // cursor spots, stage px. The cursor only ever travels between these two and never leaves the card. Both sit in empty panel space (right of the round button, below the stage
+  // name) and OUTSIDE where the description text lands once the panel opens (unchanged from the original spots).
+  const P1 = [181.25, 412.25], P2 = [478, 436];
 
   const railPose = ({ h1 = 0, h2 = 0 }) => {
     const mix = i => RAIL.D.w[i] + h1 * (RAIL.H1.w[i] - RAIL.D.w[i]) + h2 * (RAIL.H2.w[i] - RAIL.D.w[i]);
@@ -79,27 +80,34 @@
     return { w, left, gap, height, cardHeight: CARD_H_D + (height - RAIL.D.h) };
   };
 
-  // ---------------------------------------------------------------- the loop (ms), a pure function of the clock. 10.0s.
-  //   0.00-0.30 rest on the default card | 0.30-1.40 cursor arrives from the left onto stage 01 | 1.50-2.30 stage 01 opens (0.1s intent delay after the pointer lands)
-  //   2.30-4.50 HOLD (the payoff) | 4.50-5.30 cursor travels to the collapsed stage-02 strip (it crosses stage 01's right edge, x 453, at about 5.05s)
-  //   5.05-5.65 stage 01 closes (its cause: the pointer left it) | 5.75-6.55 stage 02 opens | 6.55-9.00 HOLD | 9.00-10.00 cursor leaves off the right edge (crosses x 597 at about 9.3s)
-  //   9.25-9.85 stage 02 closes (cause: the pointer left it) | 9.70-10.00 cursor fades; the loop wraps to the default card
-  const LOOP_MS = 10000;
+  // ---------------------------------------------------------------- the loop (ms), a pure function of the clock. AUTHORED time, played at SPEED (below).
+  // An INTRO that plays once, then a CYCLE that repeats forever. The cycle starts and ends in the SAME state (cursor on P1, stage 01 fully open), so the wrap is invisible.
+  //   INTRO  0-150 cursor fades in ON stage 01 | 150-1500 rest | 1500-2300 stage 01 opens (0.1s intent delay after the pointer lands) -> hands over to the cycle
+  //   CYCLE  0-2200 HOLD stage 01 open | 2200-3000 cursor travels P1 -> P2 (E_TRIP: overshoots a few px and settles)
+  //          2750-3350 stage 01 closes (its cause: the pointer left it) | 3450-4250 stage 02 opens | 4250-6450 HOLD stage 02 open
+  //          6450-7250 cursor travels P2 -> P1 | 7000-7600 stage 02 closes (the pointer left it) | 7700-8500 stage 01 opens -> the cycle wraps to its own start
+  // The cursor never leaves the card and never fades out once it has appeared.
+  // SPEED: the authored timeline plays this many times faster (2 = half the time). Readers often scroll through this beat quickly, so the
+  // cursor has to arrive and open stage 01 well inside the rest window. Only this constant changes the pace; the segments below keep their ratios.
+  const INTRO_MS = 2300, CYCLE_MS = 8500, SPEED = 2;
   const ramp = (c, a, b, e) => e(clamp((c - a) / (b - a), 0, 1));
   const seg = (c, a, b, p, q, e, bend) => {                                        // a point on a gently curved trip p -> q
     const u = e(clamp((c - a) / (b - a), 0, 1)), dx = q[0] - p[0], dy = q[1] - p[1], len = Math.hypot(dx, dy) || 1, k = bend * len * Math.sin(Math.PI * u);
     return [lerp(p[0], q[0], u) - dy / len * k, lerp(p[1], q[1], u) + dx / len * k];
   };
   function loopPose(ms) {
-    const c = ms > 0 ? ((ms % LOOP_MS) + LOOP_MS) % LOOP_MS : 0;
-    const h1 = ramp(c, 1500, 2300, E_OPEN) * (1 - ramp(c, 5050, 5650, E_CLOSE));
-    const h2 = ramp(c, 5750, 6550, E_OPEN) * (1 - ramp(c, 9250, 9850, E_CLOSE));
+    const m = ms > 0 ? ms * SPEED : 0;
+    if (m < INTRO_MS) {                                                            // intro: the cursor fades in on stage 01, then stage 01 opens
+      return { h1: ramp(m, 1500, 2300, E_OPEN), h2: 0, cx: P1[0], cy: P1[1], co: sm(0, 150, m) };
+    }
+    const c = (m - INTRO_MS) % CYCLE_MS;                                           // the cycle: stage 01 open -> stage 02 open -> stage 01 open
+    const h1 = (1 - ramp(c, 2750, 3350, E_CLOSE)) + ramp(c, 7700, 8500, E_OPEN);   // open at the start, closes for stage 02, re-opens at the end (the two terms never overlap)
+    const h2 = ramp(c, 3450, 4250, E_OPEN) * (1 - ramp(c, 7000, 7600, E_CLOSE));
     let p;
-    if (c < 4500) p = seg(c, 300, 1400, ENTRY, P1, E_ENTER, -0.06);
-    else if (c < 9000) p = c < 5300 ? seg(c, 4500, 5300, P1, P2, E_HOUSE, 0.07) : P2;
-    else p = seg(c, 9000, 10000, P2, EXIT, E_HOUSE, 0.05);
-    const co = sm(300, 520, c) * (1 - sm(9700, 10000, c));
-    return { h1, h2, cx: p[0], cy: p[1], co };
+    if (c < 2200) p = P1;
+    else if (c < 6450) p = c < 3000 ? seg(c, 2200, 3000, P1, P2, E_TRIP, 0.07) : P2;
+    else p = seg(c, 6450, 7250, P2, P1, E_TRIP, 0.07);
+    return { h1: clamp(h1, 0, 1), h2, cx: p[0], cy: p[1], co: 1 };
   }
 
   // ---------------------------------------------------------------- copy (verbatim from the Figma text nodes; U+2028 pairs become a blank line)
@@ -116,11 +124,16 @@
     outH: "Potential outcomes",
     out: [["Up to 47%", "reduction in unplanned downtime via early failure prediction"], ["10–20%", "reduction in maintenance overtime and emergency repair costs"], ["Continuous", "failure probability scoring"]],
     capH: "What capabilities are you using and which ones you’ll need:",
-    cta: "Talk to a seller"
+    cta: "Talk to a seller",
+    // stage 02 hover (Figma 231:6534): the same headings, a different body, outcomes and tags. Shown only while the stage 02 panel is open.
+    take2: "Build the foundational APM data loop — strategy, scores, and condition visibility. Reliability Strategies activated, foundational health scores enabled for critical assets, Monitor exploration with existing data sources begins.",
+    out2: [["15–20%", "reduction in unplanned downtime for critical pilot assets"], ["Single", "objective health score view across critical asset classes in Maximo Health"], ["Elimination", "of calendar-only guesswork through lightweight condition telemetry"]]
   };
   // tags: [label, kind, x, y, w]   (231:6438..6444)
   const TAGS = [["Manage", "chk", 0, 0, 60.75], ["Mobile", "chk", 66.5, 0, 56.75], ["Spatial (Partial)", "inc", 129, 0, 92.75], ["HSE", "out", 227.5, 0, 34.25],
                 ["Scheduler", "out", 0, 28.75, 58.25], ["Dispatcher", "out", 64, 28.75, 61.25], ["Organizer", "out", 131, 28.75, 56.25]];
+  // stage 02 hover tags (Figma 231:6604..6609): one row
+  const TAGS2 = [["Manage", "chk", 0, 0, 60.75], ["Health", "chk", 66.5, 0, 55.75], ["Monitor", "out", 128, 0, 49.25], ["RS", "out", 183, 0, 28.75], ["Predict", "out", 217.5, 0, 46.25]];
 
   // icons: Figma SVG exports of the instances (paths verbatim; fills set to currentColor / the node's own colour)
   const SV = (vb, body, extra) => `<svg viewBox="0 0 ${vb} ${vb}" width="${vb}" height="${vb}" fill="none" ${extra || ""} aria-hidden="true">${body}</svg>`;
@@ -183,14 +196,16 @@
         `</div>`;
     };
     const dim = n => `<div class="pn" data-pn="${n}" style="background:#262626"><div class="ic" data-r="hi" style="color:#f4f4f4;fill:#f4f4f4">${ICON.dash}</div><div class="a num" data-r="num" style="color:#6f6f6f">0${n + 1}</div></div>`;
-    const tagHtml = TAGS.map(([l, k, x, y, w]) => {
+    const chipHtml = ([l, k, x, y, w]) => {
       const icon = k === "chk" ? ICON.tagchk : k === "inc" ? ICON.inc : "";
       return `<div class="chip ${k === "out" ? "o" : "f"}${k === "inc" ? " inc" : ""}" style="left:${x}px;top:${y}px;width:${w}px">${icon ? `<i>${icon}</i>` : ""}<b style="left:${icon ? 20.13 : 8.63 - 0.72}px">${l}</b></div>`;
-    }).join("");
-    const outHtml = TXT.out.map(([v, c], i) => {
+    };
+    const tagHtml = TAGS.map(chipHtml).join(""), tagHtml2 = TAGS2.map(chipHtml).join("");
+    const outGrid = list => list.map(([v, c], i) => {
       const x = i === 1 ? 212.03 : 0, y = i === 2 ? 72 : 0;
       return `<div class="a" style="left:${x}px;top:${y}px;width:177.53px"><div style="font-size:20.13px;line-height:25.88px;color:#d0e2ff">${v}</div><div class="w" style="margin-top:11.5px;font-size:8.63px;line-height:11.5px;letter-spacing:.23px;color:#c6c6c6">${c}</div></div>`;
     }).join("");
+    const outHtml = outGrid(TXT.out), outHtml2 = outGrid(TXT.out2);
     const H = `font-size:10.06px;letter-spacing:.12px;font-weight:600;color:#f4f4f4;`;
     const html = `<div class="ep" data-ep style="visibility:hidden"><style>${CSS}</style>` +
       `<div data-card>` +
@@ -198,10 +213,20 @@
         `<div data-it="hd"><div class="a" style="left:${PAD}px;top:${PAD}px;font-size:20.13px;line-height:25.88px;color:#f4f4f4">${TXT.title}</div><div class="a" style="left:${PAD + 494.5}px;top:${PAD}px;width:23px;height:23px">${HDR_ICON}</div></div>` +
         `<div data-rail style="position:absolute;left:${PAD}px;top:${RAIL_Y}px;width:523px">${panel(0)}${panel(1)}${dim(2)}${dim(3)}${dim(4)}</div>` +
         `<div data-low style="position:absolute;left:0px;top:0px;width:552px;height:0px">` +
+          // set 1: stage 01 / default content (unchanged)
+          `<div data-set="1" style="position:absolute;left:0px;top:0px;width:552px;height:0px">` +
           `<div data-it="b2"><div class="a" style="left:${PAD}px;top:${BASE_LOW}px;${H}line-height:14.38px">${TXT.takeH}</div><div class="a w" style="left:${PAD}px;top:${BASE_LOW + 26.5}px;width:304.75px;font-size:11.5px;line-height:17.25px">${TXT.take}</div></div>` +
           `<div data-it="b3"><div class="a" style="left:${PAD}px;top:${BASE_LOW + 118.5}px;${H}line-height:14.38px">${TXT.outH}</div><div class="a" style="left:${PAD}px;top:${BASE_LOW + 118.5 + 26.5}px;width:517.5px;height:121.5px">${outHtml}</div></div>` +
           `<div data-it="b4"><div class="a" style="left:${PAD}px;top:${BASE_LOW + 289.5}px;${H}line-height:12.94px">${TXT.capH}</div><div class="a" style="left:${PAD}px;top:${BASE_LOW + 289.5 + 24.5}px;width:345px;height:52px">${tagHtml}</div>` +
           `<div class="cta" style="left:${PAD}px;top:${BASE_LOW + 289.5 + 99.25}px"><span class="a" style="left:10.78px;top:10.06px">${TXT.cta}</span><span class="a" style="left:101.28px;top:10.53px;width:11.5px;height:11.5px;line-height:0">${ICON.svc}</span></div></div>` +
+          `</div>` +
+          // set 2: stage 02 hover content (Figma 231:6581). Offsets are Figma's, measured from the same block top (BASE_LOW); data-low already adds the rail's extra height.
+          `<div data-set="2" style="position:absolute;left:0px;top:0px;width:552px;height:0px;opacity:0">` +
+          `<div data-it="c2"><div class="a" style="left:${PAD}px;top:${BASE_LOW}px;${H}line-height:14.38px">${TXT.takeH}</div><div class="a w" style="left:${PAD}px;top:${BASE_LOW + 26.5}px;width:304.75px;font-size:11.5px;line-height:17.25px">${TXT.take2}</div></div>` +
+          `<div data-it="c3"><div class="a" style="left:${PAD}px;top:${BASE_LOW + 118.5}px;${H}line-height:14.38px">${TXT.outH}</div><div class="a" style="left:${PAD}px;top:${BASE_LOW + 118.5 + 26.5}px;width:517.5px;height:121.5px">${outHtml2}</div></div>` +
+          `<div data-it="c4"><div class="a" style="left:${PAD}px;top:${BASE_LOW + 300.5}px;${H}line-height:12.94px">${TXT.capH}</div><div class="a" style="left:${PAD}px;top:${BASE_LOW + 300.5 + 24.5}px;width:345px;height:23px">${tagHtml2}</div>` +
+          `<div class="cta" style="left:${PAD}px;top:${BASE_LOW + 371}px"><span class="a" style="left:10.78px;top:10.06px">${TXT.cta}</span><span class="a" style="left:101.28px;top:10.53px;width:11.5px;height:11.5px;line-height:0">${ICON.svc}</span></div></div>` +
+          `</div>` +
         `</div>` +
       `</div>` +
       `<div class="cur" data-cur style="opacity:0"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style="display:block"><path d="M4 3 18.5 9.6 11.8 11.8 9.6 18.5Z"/></svg></div>` +
@@ -216,7 +241,8 @@
       });
       body.querySelectorAll("[style]").forEach(e => e.setAttribute("style", e.style.cssText));      // canonical serialisation, so equal states give equal DOM text
       R = { body, root: q("[data-ep]"), card: q("[data-card]"), shell: q("[data-shell]"), rail: q("[data-rail]"), low: q("[data-low]"), cur: q("[data-cur]"), pn,
-            it: { hd: q('[data-it="hd"]'), b2: q('[data-it="b2"]'), b3: q('[data-it="b3"]'), b4: q('[data-it="b4"]') } };
+            set1: q('[data-set="1"]'), set2: q('[data-set="2"]'),
+            it: { hd: q('[data-it="hd"]'), b2: q('[data-it="b2"]'), b3: q('[data-it="b3"]'), b4: q('[data-it="b4"]'), c2: q('[data-it="c2"]'), c3: q('[data-it="c3"]'), c4: q('[data-it="c4"]') } };
     };
     const put = (el, o) => { if (!el) return; const s = el.style; for (const k in o) s[k] = o[k]; };
     const px = v => f2(v) + "px";
@@ -231,7 +257,8 @@
       if (reduced) pose = { h1: 1, h2: 0, cx: 0, cy: 0, co: 0 };
       else { const lp = loopPose(clock()), w = sm(0.9, 1, p); pose = { h1: lp.h1 * w, h2: lp.h2 * w, cx: lp.cx, cy: lp.cy, co: lp.co * w }; }      // the loop is weighted in over the last 10% of the arrival, so there is no pop at enter = 1
       const fold = 1 - sm(0, 0.3, z), h1 = pose.h1 * fold, h2 = pose.h2 * fold, co = pose.co * (1 - sm(0, 0.12, z));
-      const rp = railPose({ h1, h2 }), top = reduced ? CARD.topReduced : CARD.topLoop, cardH = rp.cardHeight;
+      const rp = railPose({ h1, h2 }), top = reduced ? CARD.topReduced : CARD.topLoop;
+      const cardH = rp.cardHeight + (CARD_H_S2 - CARD_H_S1) * h2;                         // stage 02's content is shorter (Figma 231:6534: 795.84 vs 813.59 for stage 01 hover)
 
       // ---- card placement: arrival (union of the previous beat's three cards -> the card) then the numbers zoom
       const u = ease(clamp((p - 0.05) / 0.55, 0, 1)), zs = sm(0.2, 1, z);      // smoothstep only: peak slope 1.5 (ease(sm()) was 4.5). Give the zoom window >= 45vh in the host
@@ -244,7 +271,10 @@
       const arr = (el, a, b) => { const v = sm(a, b, p); put(el, { opacity: f2(v), transform: `translateY(${f2((1 - v) * 10)}px)` }); };
       arr(R.it.hd, 0.46, 0.66);
       arr(R.it.b2, 0.62, 0.82); arr(R.it.b3, 0.68, 0.88); arr(R.it.b4, 0.74, 0.96);
+      arr(R.it.c2, 0.62, 0.82); arr(R.it.c3, 0.68, 0.88); arr(R.it.c4, 0.74, 0.96);
       put(R.low, { top: px(rp.height - RAIL.D.h) });
+      // stage 02 hover swaps the lower copy: set 1 (stage 01 / default) fades out as set 2 (stage 02) fades in, both driven by how far stage 02 is open (h2)
+      put(R.set1, { opacity: f2(1 - h2) }); put(R.set2, { opacity: f2(h2) });
 
       // ---- the rail
       put(R.rail, { height: px(rp.height) });
@@ -288,5 +318,5 @@
     }
     return { html, update, loopPose, railPose };
   }
-  window.ExpansionPiece = { make, railPose, loopPose, LOOP_MS, RAIL, UNION, ZOOM, CARD };
+  window.ExpansionPiece = { make, railPose, loopPose, INTRO_MS, CYCLE_MS, RAIL, UNION, ZOOM, CARD };
 })();

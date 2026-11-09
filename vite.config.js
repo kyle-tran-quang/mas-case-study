@@ -14,7 +14,7 @@ export default defineConfig({
     name: "full-reload-on-scene-change",
     // Classic scripts are not part of Vite's module graph, so there is no HMR boundary for them: force a full reload instead of doing nothing.
     handleHotUpdate({ file, server }) {
-      if (/\/(m-goat|bob-scene)\/.*\.(js|css|html)$/.test(file)) { server.ws.send({ type: "full-reload", path: "*" }); return []; }
+      if (/\/m-goat\/.*\.(js|css|html)$/.test(file)) { server.ws.send({ type: "full-reload", path: "*" }); return []; }
     }
   }]
 });

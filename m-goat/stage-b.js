@@ -104,7 +104,8 @@
   /* ---- 1. the diagram with its text, bars and connectors fading (capabilities.js bridge cue), leaving 14 plain cards. A second instance of the piece, identical to Stage A's
           at t >= the end of its morph; it takes over from Stage A's piece at the cue start (overlapped by 0.0005 so there is never a frame without the diagram). ---- */
   const tc = TT.toCity;
-  const CAPB = CP.make({ m0: V(TT.capPrime[0]), m1: V(TT.capPrime[1]), b0: cue0, b1: cue1, i0: V(tc.city[0]), i1: V(tc.city[1]), th: V(tc.handoff) });
+  const thVal = Array.isArray(tc.handoff) ? tc.handoff.map(V) : V(tc.handoff);
+  const CAPB = CP.make({ m0: V(TT.capPrime[0]), m1: V(TT.capPrime[1]), b0: cue0, b1: cue1, i0: V(tc.city[0]), i1: V(tc.city[1]), th: thVal });
   const capA = SC.pieces.find(p => p.id === "capabilities");
   if (capA) capA.keys.push({ t: cue0, o: 1 }, { t: cue0 + E, o: 0 });
   add({ id: "sb-cap", label: "Capabilities (bridge)", kind: "media", depth: 3, html: CAPB.html, update: CAPB.update, rects: { r: FULL },
@@ -114,7 +115,7 @@
   const WIRE_FILL = [255, 255, 255, 0.5], WIRE_STROKE = hex("#8c8c99", 0.8);       // Figma 219:6845: white @ 50%, stroke #8c8c99 @ 80%
   const HL_FILL = hex("#0f62fe", 0.14), HL_STROKE = hex("#0f62fe");
   const scan0 = i => V(B.scan[0] + i * B.scanStep), scan1 = i => scan0(i) + V(B.scanLen);
-  const hl = (i, t) => sm(scan0(i), lerp(scan0(i), scan1(i), 0.4), t) - sm(lerp(scan0(i), scan1(i), 0.6), scan1(i), t);      // 0 -> 1 -> 0 pulse under "validate by hand"
+  const hl = (i, t) => sm(scan0(i), lerp(scan0(i), scan1(i), 0.35), t) - sm(lerp(scan0(i), scan1(i), 0.65), scan1(i), t);      // 0 -> 1 -> 0 pulse under "validate by hand"
   const face = '<div class="sb-face"></div>';
 
   // left column: the seven blue module cards leave. They fall beneath where the stack forms and fade.
@@ -142,6 +143,7 @@
             let fl = mixc(fill, WIRE_FILL, w), st = mixc(stroke, WIRE_STROKE, w);
             if (h > 0) { fl = mixc(fl, HL_FILL, h); st = mixc(st, HL_STROKE, h); }
             const f = body.firstChild; f.style.background = css(fl); f.style.borderColor = css(st);
+            f.style.boxShadow = h > 0.01 ? `0 0 ${(14 * h).toFixed(1)}px rgba(15,98,254,${(0.35 * h).toFixed(3)})` : "none";
           }, keys: k });
   });
 
@@ -180,8 +182,10 @@
             const u = clamp((t - labStart(i)) / labLen, 0, 1), h = hl(i, t), ink = css(mixc(INK, BLUE, h));
             n.el.style.opacity = out;
             n.dot.style.transform = `scale(${sm(0, 0.4, u).toFixed(4)})`; n.dot.style.background = ink;
-            n.ln.style.transform = `scaleX(${sm(0.2, 0.8, u).toFixed(4)})`;
+            n.dot.style.boxShadow = h > 0.01 ? `0 0 ${(6 * h).toFixed(1)}px rgba(15,98,254,${(0.6 * h).toFixed(3)})` : "none";
+            n.ln.style.transform = `scaleX(${sm(0.2, 0.8, u).toFixed(4)})`; n.ln.style.background = ink;
             n.lb.style.opacity = sm(0.5, 1, u); n.lb.style.transform = `translateX(${((1 - sm(0.5, 1, u)) * -8).toFixed(2)}px)`; n.lb.style.color = ink;
+            n.lb.style.fontWeight = h > 0.05 ? "600" : "400";
           });
         },
         keys: [{ t: 0, x: 0, y: 0, z: ANN_Z, o: 1, f: 1, rect: "r" }] });

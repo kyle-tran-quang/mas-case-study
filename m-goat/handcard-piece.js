@@ -83,12 +83,12 @@
   // The Figma loop is 4.002s. The author wants it to play on ITS OWN clock, not scrubbed by scroll: update() reads `clock()` (ms since the card became visible, supplied by
   // index.html's rAF loop) and never looks at scroll t. A deliberate exception to "scroll is the only clock", confined to this piece; it is idle (clock = 0) when the card is not on stage.
   const LOOP_MS = 4002;
-  function make({ clock, morph, leave = () => 0 }) {                       // morph(t) -> 0..1: 0 = on the wireframe, 1 = landed in the card
+  function make({ clock, morph, leave = () => 0, leaveSpan = 1 }) {                       // morph(t) -> 0..1: 0 = on the wireframe, 1 = landed in the card
     const pills = PILLS.map((p, i) => `<g data-pill="${i}" opacity="0"><rect x="0" y="0" width="${PW}" height="${PH}" rx="${PH / 2}" fill="${PILL_FILL}"/></g>`).join("");
     const html = `<svg viewBox="0 0 720 1024" width="720" height="1024" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;display:block" fill="none" stroke-linecap="round" aria-hidden="true">` +
-      `<g data-base>` + BASE + NODE + `</g>` + `<rect data-win rx="8" fill="#fff" stroke="#8D8D8D" stroke-width="0"/>` + pills + `</svg>`;
+      `<g data-base><g data-img>` + BASE + `</g>` + NODE + `</g>` + `<rect data-win rx="8" fill="#fff" stroke="#8D8D8D" stroke-width="0"/>` + pills + `</svg>`;
     let R = null;
-    const bind = body => { R = { body, pills: [...body.querySelectorAll("[data-pill]")], node: body.querySelector("[data-node]"), base: body.querySelector("[data-base]"), win: body.querySelector("[data-win]") }; };
+    const bind = body => { R = { body, pills: [...body.querySelectorAll("[data-pill]")], node: body.querySelector("[data-node]"), base: body.querySelector("[data-base]"), img: body.querySelector("[data-img]"), win: body.querySelector("[data-win]") }; };
     function update(body, k, t) {
       if (!R || R.body !== body) bind(body);
       const m = morph(t), ms = clock(), pct = ms > 0 ? ((ms % LOOP_MS) / LOOP_MS) * 100 : 0;
@@ -99,6 +99,9 @@
       R.win.setAttribute("fill-opacity", f2(1 - sm(0.1, 0.8, m))); R.win.setAttribute("stroke-width", f2(0.54 * sm(0.5, 1, m))); R.win.setAttribute("stroke-opacity", f2(1 - sm(0.85, 1, m)));
       R.win.style.opacity = m > 0 && m < 1 ? 1 : 0;
       R.base.style.opacity = sm(0.35, 0.9, m);                       // the card's frame, lines, rings and hand rise under the travelling blocks
+      const lv = leave(t);
+      R.img.style.opacity = 1 - sm(0, 0.7, lv * leaveSpan);          // the card image (frame, lines, rings, hand) fades over the first 70% of the diagram morph (leave * leaveSpan = the morph's p); it is drawn HERE, UNDER the live pills, so they stay visible and running
+      R.node.style.opacity = 1 - sm(0.4, 1, lv);
       R.pills.forEach((el, i) => {
         const p = PILLS[i], F = FROM[p.id], pc = [p.base[0] + PW / 2 + track(p.tx, 0), p.base[1] + PH / 2 + track(p.ty, 0)];     // the pill's centre at loop start
         if (m < 1) {                                                // morphing: the wireframe block travels to the pill's start pose
@@ -112,7 +115,7 @@
         const tx = track(p.tx, pct), ty = track(p.ty, pct), sx = track(p.sx, pct), sy = track(p.sy, pct), op = track(p.op, pct);
         const cx = p.base[0] + PW / 2 + tx, cy = p.base[1] + PH / 2 + ty;
         el.setAttribute("transform", `translate(${f2(cx)} ${f2(cy)}) scale(${f2(sx)} ${f2(sy)}) translate(${f2(-PW / 2)} ${f2(-PH / 2)})`);
-        el.setAttribute("opacity", f2(op * (1 - sm(0, 1, leave(t)))));
+        el.setAttribute("opacity", f2(op * (1 - sm(0.4, 1, leave(t)))));
       });
       const pulse = pct < 50 ? lerp(1, 1.1, ease(pct / 25 > 1 ? 2 - pct / 25 : pct / 25)) : lerp(1, 1.1, ease((pct - 50) / 25 > 1 ? 2 - (pct - 50) / 25 : (pct - 50) / 25));   // Figma: 0% 1, 25% 1.1, 50% 1, 75% 1.1, 100% 1
       R.node.setAttribute("transform", `translate(523 506.06) scale(${f2(pulse)})`);

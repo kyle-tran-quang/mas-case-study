@@ -29,7 +29,7 @@
 .sb-shadow { position: absolute; inset: 0; background: rgba(15,51,153,.18); filter: blur(14px); }
 
 /* ---------- story column ---------- */
-.text-col p .sb-sim { display: block; margin-top: 12px; }
+.text-col p .sb-sim { display: block; margin-top: 80px; }
 .text-col p .sb-vid { display: block; width: 100%; aspect-ratio: 536 / 302; background: #161616; object-fit: cover; }   /* Figma 219:6877, 536 x 302 */
 .text-col p .sb-cap { display: block; margin-top: 16px; font: italic 400 16px/normal "IBM Plex Sans", system-ui, sans-serif; color: #525252; }   /* Figma 235:8229 */
 .text-col p .sb-quote { display: block; margin-top: 12px; font: 300 24px/normal "IBM Plex Serif", Georgia, serif; color: #8a3ffc; }            /* Figma 241:9889 */

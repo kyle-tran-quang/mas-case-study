@@ -66,8 +66,8 @@
     }
     return [lo, hi];
   }
-  const LEAF_SEEDS = new Set(["Vector_3", "Vector_31", "Vector_27", "Vector_34"]);   // the big blue leaf and the three lilac tree leaves: drawn by the intro pieces until `th`
-  const LEAF_DET = new Set([2, 15, 17, 19]);                                         // their crease and veins
+  const LEAF_SEEDS = new Set(["Vector_3", "Vector_31"]);                              // the big blue leaf and the middle lilac tree leaf: drawn by the ring morph until `th`
+  const LEAF_DET = new Set([2, 17]);                                                 // their crease and vein
 
   function make({ m0, m1, b0, b1, h0 = m0, h1 = m0, pA = 0, pB = 0, i0 = 0, i1 = 0, th = -1 }) {
     // i0..i1 = the intro draw-in window (the rest of the illustration fades in left to right); th = the hand-off: from th on, the illustration's own leaves replace the intro pieces' (identical) leaves.
@@ -127,7 +127,8 @@
       const p = pAt(t);
       const qb = clamp((t - b0) / (b1 - b0), 0, 1);
       // intro draw-in: each element fades over 55% of the window, starting later the further right it sits (stagger = 45% of the window)
-      const Wn = i1 - i0, stag = 0.45 * Wn, hand = (th < 0 || t >= th) ? 1 : 0;
+      const Wn = i1 - i0, stag = 0.45 * Wn;
+      const hand = Array.isArray(th) ? sm(th[0], th[1], t) : (th < 0 || t >= th) ? 1 : 0;
       const ri = x => { if (!(Wn > 0)) return 1; const a = i0 + stag * clamp((x - X0) / XW, 0, 1); return sm(a, a + Wn - stag, t); };
       // ---- phase 1 (0-20%): details and surplus nodes fade; the pale architecture fades 18-60%
       const nD = R.details.length;

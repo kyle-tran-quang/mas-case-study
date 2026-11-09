@@ -67,7 +67,7 @@ The author's source frames are untouched. The copies in the keyframes were scale
 ## Decisions
 
 Confirmed by the author:
-1. **Cursor: yes.** A visible cursor moves to each stage and hovers it. `bob-scene/assets/cursor.png` exists; check whether the Figma frames draw a cursor before reusing it, and do not invent other UI.
+1. **Cursor: yes.** A visible cursor moves to each stage and hovers it. `cursor.png` exists in the archived `~/Documents/GitHub/bob-scene/assets/`; check whether the Figma frames draw a cursor before reusing it, and do not invent other UI.
 2. **Transition: flat morph.** The card stays flat. The hovered panel widens, the others narrow, content cross-fades. No blueprint or isometric treatment.
 3. **Loop between stage 01 and stage 02** while the viewer is on the section. It starts when they land on it. The author did not say whether the rail returns to the default (both open) layout between the two hovers. Follow the original brief ("expanding and contracting"): each hovered panel contracts, then the next one expands.
 4. **Reduced motion / default pose:** a hovered state, not the default rail. Use 2a (stage 01 expanded) for slide 18 and beat 3 for slide 19. The author left the choice to me and confirmed the plan, so treat both as settled.

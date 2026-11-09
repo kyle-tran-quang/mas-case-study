@@ -76,19 +76,21 @@
   // ---- ring piece (vector, ring-piece.js). Its draw-in is a function of INTRO progress (SCENE.introT, 0..1 across the hero scroll, set by index.html); everything else is scene t.
   SCENE.introT = 1;
   const RING = RingPiece.make({ drawAt: () => SCENE.introT, dim: w(...TT.ring.dim), toCity: w(...TT.toCity.ring) });
-  const RING_F = RingPiece.make({ drawAt: () => SCENE.introT, dim: w(...TT.ring.dim), toCity: w(...TT.toCity.ring) });
+  const RING_F = RingPiece.make({ drawAt: () => SCENE.introT, dim: w(...TT.ring.dim), toCity: w(...TT.toCity.ring), noCircle: true });
   const ringP = P("ring"); ringP.html = RING.html; ringP.update = RING.update;
   const ringF = P("ring-front"); ringF.html = RING_F.html; ringF.update = RING_F.update;
 
   // ---- hand card piece (vector, handcard-piece.js): the Figma pill loop scrubbed once over TT.pills
   const h0 = V(TT.toHand[0]), h1 = V(TT.toHand[1]);
-  const HAND = HandcardPiece.make({ clock: () => (SCENE.handClock ? SCENE.handClock() : 0), morph: t => Math.min(1, Math.max(0, (t - h0) / (h1 - h0))), leave: t => Math.min(1, Math.max(0, (t - V(TT.toDiagram[0])) / ((V(TT.toDiagram[1]) - V(TT.toDiagram[0])) * 0.14))) });
+  // the live pills keep RUNNING (free clock) while they run on through the first LEAVE (90%) of the diagram morph, fading only over the second half of that, so the loop never freezes or pops
+  const LEAVE = 0.9, dLeave = V(TT.toDiagram[0]) + (V(TT.toDiagram[1]) - V(TT.toDiagram[0])) * LEAVE;
+  const HAND = HandcardPiece.make({ clock: () => (SCENE.handClock ? SCENE.handClock() : 0), morph: t => Math.min(1, Math.max(0, (t - h0) / (h1 - h0))), leave: t => Math.min(1, Math.max(0, (t - V(TT.toDiagram[0])) / (dLeave - V(TT.toDiagram[0])))), leaveSpan: LEAVE });
   // Living element for the pacing audit (SCENE.extras = activity that is not a stage move): the pill loop runs on its OWN clock for as long as the card is landed. It declares presence only
   // (opacity keys), so it keeps the audit from reading that rest as dead scroll WITHOUT counting as stage motion at the text anchor (which must stay still).
   SCENE.extras = [{ id: "pill-loop (free-running clock)", keys: [{ t: h1, o: 0 }, { t: h1 + 0.0005, o: 1 }, { t: V(TT.toDiagram[0]), o: 1 }] },
                   // the card-by-card morph animates inside its own update(): it declares its whole span here so the audit sees the activity (it is stage motion, and it ends well before the capabilities anchor)
                   { id: "flow card -> diagram morph", keys: [{ t: V(TT.toDiagram[0]), o: 0 }, { t: V(TT.toDiagram[1]), o: 1 }] }];
-  SCENE.handOn = t => t >= h1 && t < V(TT.toDiagram[0]) + (V(TT.toDiagram[1]) - V(TT.toDiagram[0])) * 0.14;                     // the free-running loop plays only while the card is landed and before it turns into the diagram
+  SCENE.handOn = t => t >= h1 && t < dLeave;                     // the free-running loop plays only while the card is landed and before it turns into the diagram
   const handP = P("handcard"); handP.html = HAND.html; handP.update = HAND.update;
 
   // ---- hand card -> diagram morph (vector, handcard-to-diagram.js): p runs 0 -> 1 over TT.toDiagram
@@ -96,34 +98,42 @@
   const todP = P("to-diagram"); todP.html = TOD.html; todP.update = TOD.update;
 
   // ---- capabilities piece (vector). The morph (p 0 -> 1) runs while the piece is invisible, so the city art shows at p = 0 and the diagram at p = 1.
-  const CAP = CapabilitiesPiece.make({ m0: V(TT.capPrime[0]), m1: V(TT.capPrime[1]), b0: 2, b1: 3, i0: V(tc.city[0]), i1: V(tc.city[1]), th: V(tc.handoff) });
+  const CAP = CapabilitiesPiece.make({ m0: V(TT.capPrime[0]), m1: V(TT.capPrime[1]), b0: 2, b1: 3, i0: V(tc.city[0]), i1: V(tc.city[1]), th: w(...tc.handoff) });
   SCENE.capProgress = CAP.progress;
   const cap = P("capabilities"); cap.html = CAP.html; cap.update = CAP.update;
 
   /* ---- timeline: every window below is read from TIMING (story.js), in vh of scroll ------------------------------------------------ */
   SCENE.pieces.forEach(p => p.keys = []);
 
-  // ring: the first frame (the hero image dissolves into it); fades as the city art rises in
-  const swap = V(tc.ring[0]) - 0.001;                                   // the dashboard has started to fade (tc.dash[0] = 160, the morph starts at 164): swap the back ring for the front ring
-  add("ring", { t: 0, x: 0, y: 0, z: 0, o: 1, f: 1, rect: "r" }, { t: swap, o: 1 }, { t: swap + 0.0005, o: 0 });
-  add("ring-front", { t: 0, x: 0, y: 0, z: 0, o: 0, f: 1, rect: "r" }, { t: swap, o: 0 }, { t: swap + 0.0005, o: 1 }, { t: V(tc.handoff), o: 1 }, { t: V(tc.handoff) + 0.0005, o: 0 });     // the ring's own update() morphs it into the city; the city piece takes over at tc.city
+  // ring: the back ring dims under the dashboard, then cross-fades into the front ring (which carries the morph without the white circle) as the dashboard fades
+  const sw0 = V(tc.dash[0] + 2), sw1 = V(tc.dash[1]);
+  add("ring", { t: 0, x: 0, y: 0, z: 0, o: 1, f: 1, rect: "r" }, { t: sw0, o: 1 }, { t: sw1, o: 0, e: "inOutSine" });
+  add("ring-front", { t: 0, x: 0, y: 0, z: 0, o: 0, f: 1, rect: "r" }, { t: sw0, o: 0 }, { t: sw1, o: 1, e: "inOutSine" },
+      { t: V(tc.handoff[0]), o: 1 }, { t: V(tc.handoff[1]), o: 0, e: "inOutSine" });
 
-  // dashboard: slides up from below the stage over the ring; later shrinks toward the centre while fading into the city art
-  add("dashboard", { t: 0, x: 0, y: 0, z: 1, o: 0, f: 1, rect: "d0" }, { t: V(TT.dash[0]), o: 0, rect: "d0" }, { t: V(TT.dash[0]) + 0.002, o: 1 },
+  // dashboard: slides up from below the stage over the ring; recedes and fades into the city morph
+  add("dashboard", { t: 0, x: 0, y: 0, z: 1, s: 1, o: 0, f: 1, rect: "d0" }, { t: V(TT.dash[0]), o: 0, rect: "d0" }, { t: V(TT.dash[0]) + 0.002, o: 1 },
       { t: V(TT.dash[1]), o: 1, rect: "d1", e: "inOutSine" },
-      { t: V(tc.dash[0]), o: 1, rect: "d1" }, { t: V(tc.dash[1]), o: 0, e: "inOutSine" });
+      { t: V(tc.dash[0]), s: 1, o: 1, rect: "d1" }, { t: V(tc.dash[1]), s: 0.95, o: 0, e: "inOutSine" });
 
-  // tiles: each fades in with a short upward drift, staggered; they then converge on the centre and fade
+  // tiles: each fades in with a short upward drift, staggered; they then gently converge inward and fade
   const [m0, m1] = w(...TT.tiles), drift = 40;
+  const tileExits = {
+    "tile-apppoints":   { x: 14, y: 12 },
+    "tile-entitlement": { x: -16, y: -8 },
+    "tile-usage":       { x: 0, y: -14 }
+  };
   Object.entries(TILES).forEach(([id, t], i) => {
     const a = m0 + i * (m1 - m0) * 0.22, b = Math.min(m1, a + (m1 - m0) * 0.56);
-    add(id, { t: 0, x: 0, y: drift, z: 2, rz: t.rz, o: 0, f: 1, rect: "r" }, { t: a, y: drift, o: 0 }, { t: b, y: 0, o: 1, e: "inOutSine" },
-        { t: V(tc.tiles[0]), y: 0, o: 1, rect: "r" }, { t: V(tc.tiles[1]), o: 0, e: "inOutSine" });
+    const ex = tileExits[id] || { x: 0, y: 0 };
+    const ea = V(tc.tiles[0] + i * 1.5), eb = V(tc.tiles[1]);
+    add(id, { t: 0, x: 0, y: drift, z: 2, rz: t.rz, s: 1, o: 0, f: 1, rect: "r" }, { t: a, y: drift, o: 0 }, { t: b, y: 0, o: 1, e: "inOutSine" },
+        { t: ea, x: 0, y: 0, s: 1, o: 1, rect: "r" }, { t: eb, x: ex.x, y: ex.y, s: 0.94, o: 0, e: "inOutSine" });
   });
 
-  // city art -> out (ALM comes in) -> invisible through the hand card and the morph -> the finished diagram appears at the END of the morph (identical pixels: the morph piece lands on the diagram's exact rects)
+  // city art: internal elements fade in smoothly via ri(x) and hand; piece stays fully active through the city beat until toAlm
   const d0 = V(TT.toDiagram[0]), d1 = V(TT.toDiagram[1]);
-  add("capabilities", { t: 0, x: 0, y: 40, z: 3, o: 0, f: 1, rect: "r" }, { t: V(tc.city[0]), y: 40, o: 0 }, { t: V(tc.city[1]), y: 0, o: 1, e: "inOutSine" },
+  add("capabilities", { t: 0, x: 0, y: 0, z: 3, o: 1, f: 1, rect: "r" },
       { t: V(ta.city[0]), o: 1 }, { t: V(ta.city[1]), o: 0, e: "inOutSine" },
       { t: d1 - 0.0005, o: 0 }, { t: d1, o: 1 });
   add("to-diagram", { t: 0, x: 0, y: 0, z: 6, o: 0, f: 1, rect: "r" }, { t: d0 - 0.0005, o: 0 }, { t: d0, o: 1 }, { t: d1, o: 1 }, { t: d1 + 0.0005, o: 0 });
@@ -132,5 +142,5 @@
   add("main", { t: 0, x: 0, y: 0, z: 4, o: 0, f: 1, rect: "alm" }, { t: V(ta.alm[0]), o: 0 }, { t: V(ta.alm[1]), o: 1, e: "inOutSine" },
       { t: h0 + (h1 - h0) * 0.12, o: 1 }, { t: h0 + (h1 - h0) * 0.45, o: 0, e: "inOutSine" });
   add("handcard", { t: 0, x: 0, y: 0, z: 5, o: 0, f: 1, rect: "r" }, { t: h0 - 0.0005, o: 0 }, { t: h0, o: 1 },
-      { t: d0, o: 1 }, { t: d0 + (d1 - d0) * 0.14, o: 0 });                       // the live card keeps drawing its pills (fading, see handcard-piece.js) for the first 14% of the morph while the morph piece fades its own parked pills in
+      { t: dLeave, o: 1 }, { t: dLeave + 0.0005, o: 0 });                          // the live card keeps drawing its pills (fading them itself, see handcard-piece.js) for the first LEAVE of the morph; the piece then drops out
 })();

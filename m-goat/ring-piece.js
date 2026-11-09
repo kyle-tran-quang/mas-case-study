@@ -82,7 +82,7 @@
   // leaf bboxes in ring-local coordinates (from the paths above)
   const BLUE_BB = { x: 164.39, y: 214, w: 167.708, h: 167.749 }, LILAC_BB = { x: 213.88, y: 153, w: 156.13, h: 229.13 };
 
-  function make({ drawAt, dim, toCity }) {        // drawAt() -> 0..1 (INTRO time, see index.html); dim and toCity are [t0, t1] pairs, as fractions of the scene
+  function make({ drawAt, dim, toCity, noCircle = false }) {        // drawAt() -> 0..1 (INTRO time, see index.html); dim and toCity are [t0, t1] pairs, as fractions of the scene
     const dotEls = DOTS.map(([x, y, c], i) => `<circle data-dot="${i}" cx="${f2(x + OX)}" cy="${f2(y + OY)}" r="${R}" fill="${FILL[c]}" stroke="${DOT_STROKE}"/>`).join("");
     const html =
       `<svg viewBox="0 0 720 1024" width="720" height="1024" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;display:block" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
@@ -118,7 +118,7 @@
         const a = dn * 0.55 * (i / (DOTS.length - 1)), b = a + dn * 0.30, u = sm(a, b, tt);
         el.style.opacity = u; el.setAttribute("r", f2(R * (0.4 + 0.6 * u)));
       });
-      Rf.circle.style.opacity = sm(dn * 0.20, dn * 0.60, tt);
+      Rf.circle.style.opacity = noCircle ? 0 : sm(dn * 0.20, dn * 0.60, tt);
       const draws = [["lilac", 0.45, 0.80], ["blue", 0.60, 1.0]];
       draws.forEach(([name, a, b]) => {
         const u = sm(dn * a, dn * b, tt), P = Rf[name + "P"];
@@ -137,7 +137,7 @@
         Rf.lilacP.line.setAttribute("stroke-width", "1");
       }
       Rf.lilacP.crease.style.opacity = 1 - sm(0, 0.35, m);                      // the ring leaf's crease has no counterpart in the city leaf: it fades as the shape changes
-      Rf.circle.style.opacity = sm(dn * 0.20, dn * 0.60, tt) * (1 - sm(0, 0.55, m));
+      Rf.circle.style.opacity = noCircle ? 0 : sm(dn * 0.20, dn * 0.60, tt) * (1 - sm(0, 0.45, m));
       Rf.dots.forEach((el, i) => {
         const [x, y, c] = DOTS[i], n = CITY.nodes[DEST[i]], u = sm(0.05 + 0.02 * (i % 5), 0.9, m);
         el.setAttribute("cx", f2(lerp(x + OX, n[0], u))); el.setAttribute("cy", f2(lerp(y + OY, n[1], u)));

@@ -5,7 +5,7 @@
      spec from the MCP:   tile padding 16 ($spacing-05), min-height 64, min-width 128; progress bar big = 8px high;
                           label 14px ($body-compact-01), helper 12px ($helper-text-01), tag label 12px ($label-01), label-to-bar gap 8 ($spacing-03)
      hex NOT from the MCP: --layer, --border-subtle, --border-interactive, --text-*  -> standard Carbon white-theme values
-                          (#0f62fe is the accent already used in bob-scene). Verify against your Carbon v11 Theme variables in Figma. */
+                          (#0f62fe is the accent already used in the archived bob-scene). Verify against your Carbon v11 Theme variables in Figma. */
 :root, [data-theme="light"] {
   --bg: #f4f4f4;                     /* stage fill, from the Figma frame (#f4f4f4 measured in the export) */
   --text: #000000; --muted: #a8a8a8; /* right column: black copy, #a8a8a8 eyebrow (Figma 41:31) */

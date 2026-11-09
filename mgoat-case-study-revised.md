@@ -110,10 +110,13 @@ Each step explicitly tags responsible roles, like Asset Manager or Sys Admin, ma
   
 
 [APM and FSM maturity maps page]
+*(Visual: The dark Next Steps card explodes isometrically into detailed blueprint outline slabs. The page undergoes a scroll-scrubbed dark-to-light theme transition. Slabs representing the maturity window drop in bottom-first to assemble the final light-gray layout. A cursor glides in to tap the "Compare stages" toggle, instantly morphing the navigation tabs into checkboxes, reflowing Stage 1 narrower, and bringing in Stage 2 with a blue vertical Feedback tab.)*
 
 To give leaders clarity without forcing two different systems onto one scale, I split asset management into two parallel paths: one for tracking equipment health and one for managing technicians in the field.
 
 Stages 1 to 5 for each path helps executives pinpoint exact gaps in their hardware monitoring, versus on-the-ground execution.
+
+A comparison view helps them guide the conversation to the customer about where they’re at and the target stage.
 
 **
 

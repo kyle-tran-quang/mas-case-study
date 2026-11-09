@@ -1,18 +1,24 @@
 /* =========================================================================
    STAGE C (beat 11, "the second iteration"): wiring. Loaded AFTER stage-b.js. It does NOT touch Stage A or B's pieces; it only adds one overlay + one scene hook.
-   Pieces / data: stagec-data.js (local timing + copy), stagec-piece.js (the dark screen, wireframe, scroll, zoom, cursor), stagec.css.
+   Pieces / data: stagec-data.js (local timing + copy), stagec-piece.js (the dark screen, scroll, zoom, cursor), stagec.css.
    Windows: TIMING.C (story.js, vh of scroll). Retime there.
 
-   WHY AN OVERLAY. C1 is FULL SCREEN (author's request): the generation plays over the whole viewport (UI frame = 70% of the screen width) and only then slides into the left half.
-   The scene lives in the left-half column, so C draws into a fixed full-viewport overlay with its OWN engine instance. The overlay's world is placed with the SAME scale and
-   centre rule as the main scene (stage 720 x 1024, fit 1, camera 0.8/0.8): its left half therefore coincides with the main stage's pixels when C1 lands.
+   NO SCROLL-DRIVEN C1 ANY MORE. The full-screen generation (cover, wireframe, reveal, backdrop turning dark, frame sliding into the left half) is a one-off, clock-based, scroll-locked
+   intro owned by stage-c-intro.js (TIMING.C.intro = { trigger: 778, land: 872 }). This file is the page UNDERNEATH it: from TIMING.C.start (778) to TIMING.C.end (1106) it shows Stage C's LANDED
+   layout and nothing else, with no animation between 778 and the first scroll window (893):
+     - the dark questionnaire window at its rest pose: 680 x 420.05 at (20, 326.35) of the stage column, 1x, form scrolled to the top, no ticks, no cursor
+     - the left half (the stage column) on the backdrop #262626; the right half is the page's own dark text column (#161616, index.html: the beat's theme is dark from 778, no light phase)
+   There is no replay. After the intro, scrolling back below 778 hard-cuts to Stage B (the overlay is simply hidden), and scrolling forward again shows the landed state directly.
 
-   HAND-OVER (my decisions, redirect freely)
-     in : the overlay appears over the last 10vh of Stage B's rest (TIMING.C.cover) as a light cover (#f4f4f4 left, #fff right = Stage B's own colours), hiding the v1 + notes.
-          The right half waits until Stage B's text has left (coverR), so the cover never dims text. Stage B's last pieces are keyed out 1vh after the cover is complete.
-     out: the overlay is visible from TIMING.C.cover[0] to TIMING.C.end (a pure function of scroll; nothing to call). Its LAST frame is the rest pose: the 680 x 420 dark window at
-          (20, 326.35) of the stage, 1x, form scrolled to the top, no ticks, no cursor (byte-identical to the C1 rest frame). Stage D draws its own identical window and takes over
-          beyond TIMING.C.end. window.StageC = { overlay, end, startVh } for reference.
+   WHY AN OVERLAY. The window used to need a full-viewport canvas for C1, and Stage D's hand-over (stage-d.js) is built on this overlay being visible up to TIMING.C.end and hidden past it, so
+   C draws into a fixed full-viewport overlay with its OWN engine instance. The overlay's world is placed with the SAME scale and centre rule as the main scene (stage 720 x 1024, fit 1, camera
+   0.8/0.8): its stage column coincides with the main stage's pixels.
+
+   HAND-OVER
+     in : at 778 the overlay is visible and opaque over the left half (Stage B's v1 + notes sit under it). Stage B's last pieces are keyed out 1vh later so that whatever follows Stage C
+          (Stage D) does not find them there again.
+     out: the overlay is visible from TIMING.C.start to TIMING.C.end (a pure function of scroll; nothing to call). Its LAST frame is the rest pose (byte-identical to the 778 frame).
+          Stage D draws its own identical window and takes over beyond TIMING.C.end. window.StageC = { overlay, end, startVh, T, START } for reference.
    ========================================================================= */
 (function () {
   const TT = window.TIMING, C = TT && TT.C, SP = window.StagecPiece, SD = window.STAGEC, AS = window.AssemblyScene;
@@ -20,86 +26,110 @@
 
   const layout = document.getElementById("layout"), mainScene = document.getElementById("scene");
   if (!layout || !mainScene) return;
-  const START = TT.C.draw[0] - SD.TIMING.draw[0];                                      // global vh of the beat's local 0 = 778 (draw starts at local 3, global 781)
+  const START = C.start;                                                               // global vh of the beat's local 0 = 778 (the end of Stage B; the overlay appears here, already landed)
   const loc = v => v - START;                                                          // global vh -> stagec-data local vh
   const T = {};                                                                        // the piece reads LOCAL windows from stagec-data.js; recompute them from TIMING.C so retiming in story.js is enough
   Object.keys(SD.TIMING).forEach(k => { T[k] = SD.TIMING[k]; });
-  ["cover", "draw", "reveal", "bg", "camera", "scroll", "zoom", "ticks", "out"].forEach(k => { if (C[k]) T[k] = [loc(C[k][0]), loc(C[k][1])]; });
+  ["scroll", "zoom", "ticks", "out", "morph"].forEach(k => { if (C[k]) T[k] = [loc(C[k][0]), loc(C[k][1])]; });
+  // The piece's C1 windows (draw, reveal, bg, camera) are retired: the intro plays them on a clock. The piece still reads them, so hand it windows that ended before the beat's local 0:
+  // at every vh >= 0 it renders the landed frame (UI revealed, no wireframe, backdrop dark, camera at the rest pose). No cover windows (cover, coverR): the piece then draws no cover at all.
+  const LANDED = [-2, -1];
+  ["draw", "reveal", "bg", "camera"].forEach(k => { T[k] = LANDED; });
+  delete T.cover; delete T.coverR;
   T.MAX = TT.MAX;
-  T.coverR = [loc(C.draw[0] - 4), loc(C.draw[0])];                                    // the right-hand cover waits until Stage B's text column has emptied (the beat boundary), then covers in 4vh
+  T.external = true;                                                                   // the backdrop is drawn here (viewport-sized), not inside the piece
 
-  // ---- the overlay: fixed, full viewport, above the layout, inert. Inside it: two viewport backdrops (left = stage colour, right = page colour) and the stage COLUMN, a box placed exactly
-  // where .stage-col is, holding the engine. The engine therefore builds the SAME world (720 x 1024, same scale, same centre) as the main scene, so the landed frame is the main stage's pose by construction.
+  // ---- the overlay: fixed, full viewport, above the layout, inert. Inside it: the stage backdrop (left half) and the stage COLUMN, a box placed exactly where .stage-col is, holding the engine.
+  // The engine therefore builds the SAME world (720 x 1024, same scale, same centre) as the main scene, so the landed frame is the main stage's pose by construction.
+  // The right half is not drawn here: it is the page's dark text column.
   const ov = document.createElement("div");
   ov.id = "stageC"; ov.setAttribute("aria-hidden", "true");
   ov.style.cssText = "position:fixed;inset:0;z-index:2;pointer-events:none;visibility:hidden";
-  const bgL = document.createElement("div"), bgR = document.createElement("div"), col = document.createElement("div");
-  bgL.style.cssText = "position:absolute;left:0;top:0;width:50%;height:100%;opacity:0";
-  bgR.style.cssText = "position:absolute;left:50%;top:0;width:50%;height:100%;opacity:0";
+  const bgL = document.createElement("div"), col = document.createElement("div");
+  bgL.style.cssText = "position:absolute;left:0;top:0;width:50%;height:100%;background:#262626";   // Figma slide 13 stage colour (the dark theme's --bg)
   col.style.cssText = "position:absolute;left:0;top:0;width:50%;height:100%";
-  ov.append(bgL, bgR, col);
+  ov.append(bgL, col);
   document.body.insertBefore(ov, document.getElementById("progress"));
   const sheet = document.createElement("style");
   sheet.textContent = "#stageC .asm{overflow:visible;background:transparent} #stageC .asm-stage{overflow:visible}" +
-    "@media (max-width:800px){#stageC .st-col{width:100%!important;height:55vh!important} #stageC>div:first-child{width:100%!important;height:55vh!important} #stageC>div:nth-child(2){display:none}}";
+    "@media (max-width:800px){#stageC .st-col{width:100%!important;height:55vh!important} #stageC>div:first-child{width:100%!important;height:55vh!important}}";
   document.head.appendChild(sheet); col.className = "st-col";
   const holder = col;
 
-  // C1's start pose, relative to the SCREEN: the UI frame is 70% of the viewport width, centred in the viewport (the engine world is letterboxed, so measure it)
-  let poseKey = "", pose = null;
-  T.startPose = () => {
-    const narrow = matchMedia("(max-width: 800px)").matches;                          // mobile: the stage is the top 55vh column, so C1's "screen" is that column
-    const wEl = holder.querySelector(".asm-world"), o = (narrow ? col : ov).getBoundingClientRect(), key = o.width + "x" + o.height + "/" + col.clientWidth + "x" + col.clientHeight + narrow;
-    if (wEl && key !== poseKey) {
-      const r = wEl.getBoundingClientRect(), ws = r.width / 720;
-      if (ws > 0) {
-        const SCR = SP.SCR, s = 0.70 * o.width / (ws * SCR.w), cx = (o.left + o.width / 2 - r.left) / ws, cy = (o.top + o.height / 2 - r.top) / ws;
-        pose = { s, tx: cx - (SCR.x + SCR.w / 2) * s, ty: cy - (SCR.y0 + SCR.h / 2) * s }; poseKey = key;
-      }
-    }
-    return pose || { s: 1.3, tx: -200, ty: -150 };
-  };
-  T.external = true;                                                                   // the backdrops are drawn here (viewport-sized), not inside the piece
-
   const piece = SP.make({ vh: t => t * TT.MAX - START, T });                           // piece time is the SCENE progress t; the piece converts to LOCAL vh
   const SC = {
-    ariaLabel: "The second iteration of the assessment: a dark questionnaire screen, generated, then scrolled and zoomed to its first question.", hud: false, grid: false, fit: 1,
+    ariaLabel: "The second iteration of the assessment: a dark questionnaire screen, scrolled and zoomed to its first question.", hud: false, grid: false, fit: 1,
     frames: { stage: { w: 720, h: 1024 } },
     pieces: [{ id: "stagec", label: "Second iteration", kind: "media", depth: 0, rects: { r: { x: 0, y: 0, w: 720, h: 1024 } }, html: piece.html, update: piece.update, keys: [{ t: 0, x: 0, y: 0, z: 0, o: 1, f: 1, rect: "r" }] }],
     camera: [{ t: 0, rx: 0, rz: 0, s: 0.8 }, { t: 1, rx: 0, rz: 0, s: 0.8 }]
   };
-  const sceneC = AS.mount(holder, { scene: SC, story: { title: "Stage C", beats: [{ id: "second", range: [0, 1], theme: "light", title: "Second iteration" }] } });
-  window.StageC = { overlay: ov, end: C.end, startVh: C.cover[0], T, START };                  // visibility is a pure function of scroll (see afterRender); no hide()/show() to keep in sync
-  const HEX = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
-  const mix = (p, q, u) => { const A = HEX(p), B = HEX(q); return "#" + A.map((v, i) => Math.round(v + (B[i] - v) * u).toString(16).padStart(2, "0")).join(""); };
+  const sceneC = AS.mount(holder, { scene: SC, story: { title: "Stage C", beats: [{ id: "second", range: [0, 1], theme: "dark", title: "Second iteration" }] } });
+  window.StageC = { overlay: ov, end: C.end, startVh: START, T, START };                // visibility is a pure function of scroll (see afterRender); no hide()/show() to keep in sync
 
-  // ---- clean hand-over: Stage B's last pieces (the v1, its notes) are still keyed on the main scene. They sit under the opaque cover, but whatever follows Stage C (Stage D) would
-  // find them there again, so they are keyed out 1vh after the cover is complete. Pure keys (hold, then 0), so scrolling back restores them exactly. Nothing before this vh changes.
+  // The overlay appears at the SAME scene progress as the `second` beat (story.js builds its range from f(778) = the vh rounded to 5 decimals), so the page theme flipping to dark and the
+  // overlay showing are one and the same frame: never a frame of the dark page without the window, or of the window on a light page.
+  const tOn = +(START / TT.MAX).toFixed(5), tOff = (C.end + 0.05) / TT.MAX;
+
+  // ---- MORPH v1 -> dark v2 (a pure function of scroll, so it also plays backwards). Window: TIMING.C.morph. Over it the dark window fades in over the v1 while its bottom edge grows from the
+  // v1's height (374) to its own (420) (stagec-piece.js, T.morph), the left backdrop darkens, and the feedback notes leave first. The v1 stays fully opaque underneath until the window
+  // is opaque, then it is keyed out (no mid-fade dip). Outside the window nothing differs from the plain landed state: u = 0 before 778, u = 1 from the end of the window on.
+  const MORPH = C.morph || [START, START + 1], sm01 = u => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
+  const morphAt = t => sm01((t * TT.MAX - MORPH[0]) / (MORPH[1] - MORPH[0]));
+
+  // ---- clean hand-over: Stage B's last pieces (the v1, its notes) are still keyed on the main scene. They sit under the overlay until the morph has finished, but whatever follows Stage C
+  // (Stage D) would find them there again, so they are keyed out as the morph completes (the notes fade over the first 45% of it). Pure keys, so scrolling back restores them exactly.
   {
-    const tHide = (C.cover[1] + 1) / TT.MAX, eps = 0.0005;
+    const tS = START / TT.MAX, tE = MORPH[1] / TT.MAX, tN = (MORPH[0] + 0.45 * (MORPH[1] - MORPH[0])) / TT.MAX, eps = 0.0005;
     SCENE.pieces.forEach(p => {
       const ks = p.keys; if (!ks || !ks.length) return;
-      const last = ks[ks.length - 1]; if (last.t >= tHide - eps) return;                   // already keyed past this point by someone else
+      const last = ks[ks.length - 1]; if (last.t >= tE - eps) return;                      // already keyed past this point by someone else
       let o = 0; for (let i = ks.length - 1; i >= 0; i--) if (ks[i].o !== undefined) { o = ks[i].o; break; }
       if (o === 0) return;                                                                 // already invisible at the end of Stage B
-      ks.push({ t: tHide - eps, o }, { t: tHide, o: 0 });
+      if (/^sb-note-/.test(p.id)) ks.push({ t: tS, o }, { t: tN, o: 0 });
+      else ks.push({ t: tE - eps, o }, { t: tE, o: 0 });
     });
   }
 
+  // ---- RASTER PRIME. The C3 zoom (2.1x) is only crisp if the camera layer was first rasterised at a large scale: Chromium fixes a composited layer's raster scale early and upscales it afterwards (the zoomed
+  // text turns blocky). The old C1 got that for free (it first showed the window at the 70%-of-screen start pose, ~1.7x). The overlay now starts landed at 1x, so, once at load, the camera is held at that
+  // start pose for a few frames at 0.3% opacity (invisible; the page is under the hero then), then restored. Measured: without it the 2.1x text is blocky, with it the frames match the old page.
+  const startPose = () => {
+    const narrow = matchMedia("(max-width: 800px)").matches, wEl = holder.querySelector(".asm-world"), o = (narrow ? col : ov).getBoundingClientRect();
+    const r = wEl && wEl.getBoundingClientRect(), ws = r ? r.width / 720 : 0, SCR = SP.SCR;
+    if (!(ws > 0)) return { s: 1.7, tx: -200, ty: -150 };
+    const s = 0.70 * o.width / (ws * SCR.w), cx = (o.left + o.width / 2 - r.left) / ws, cy = (o.top + o.height / 2 - r.top) / ws;
+    return { s, tx: cx - (SCR.x + SCR.w / 2) * s, ty: cy - (SCR.y0 + SCR.h / 2) * s };
+  };
+  let priming = true, lastT = 0, frames = 0;
+  const prime = () => {
+    ov.style.visibility = "visible"; ov.style.opacity = ".003";
+    sceneC.render(tOn);
+    const cam = holder.querySelector(".sc-cam"), p = startPose();
+    if (cam) cam.style.transform = `translate(${p.tx.toFixed(2)}px,${p.ty.toFixed(2)}px) scale(${p.s.toFixed(4)})`;
+    const step = () => {
+      if (++frames < 4) return requestAnimationFrame(step);
+      priming = false; ov.style.opacity = "";
+      SCENE.afterRender(lastT);                                                 // restore the overlay to the pure function of the current scroll (this also re-renders the landed pose)
+    };
+    requestAnimationFrame(step);
+  };
+
+  const mainAsm = mainScene;                                                   // the engine makes the container itself the .asm root
   // ---- the SCENE hook. index.html calls SCENE.afterRender(t) after every main-scene render (one line there). A pure function of t, so scrolling back reverses it.
   SCENE.afterRender = function (t) {
-    const v = t * TT.MAX;
-    const on = v >= C.cover[0] && v <= C.end + 0.05;                          // visible from the cover to the END of Stage C. Above this the overlay is gone and whatever follows (Stage D) shows its own, identical window
+    lastT = t;
+    if (priming) return;                                                       // the prime owns the overlay for its first few frames
+    const on = t >= tOn && t <= tOff;                                         // visible from 778 to the END of Stage C. Above this the overlay is gone and whatever follows (Stage D) shows its own, identical window
     ov.style.visibility = on ? "visible" : "hidden";
-    if (!on) return;
-    sceneC.render(t);
-    const body = holder.querySelector("[data-html]"), st = body && body.firstChild && body.firstChild.__sc, S = st && st.state;
-    if (S) {
-      bgL.style.background = mix("#f4f4f4", "#262626", S.bgU); bgR.style.background = mix("#ffffff", "#161616", S.bgU);   // light = Stage B's own colours (stage #f4f4f4, page #fff); dark = Figma slide 13 (#262626 / #161616)
-      bgL.style.opacity = S.covU.toFixed(3); bgR.style.opacity = S.bgRU.toFixed(3);
+    const mu = morphAt(t);
+    bgL.style.opacity = mu.toFixed(3);                                        // the left backdrop darkens with the morph (1 from its end on)
+    // the beat is "dark" from 778, which would turn the MAIN stage dark in one step under the v1: hold it light and darken it with the morph (inline on the root, scroll-driven, so no CSS transition)
+    if (mainAsm) {
+      const live = mu < 1 && t >= tOn - 0.002;
+      mainAsm.style.transition = live ? "none" : "";
+      mainAsm.style.backgroundColor = live ? `rgb(${(c => c + "," + c + "," + c)(Math.round(0xf4 + (0x26 - 0xf4) * mu))})` : "";
     }
-    // the page theme: it stays light until the backdrop is dark (index.html reads layout.dataset.cdark), whatever the beat says
-    const bgU = Math.min(1, Math.max(0, (v - C.bg[0]) / (C.bg[1] - C.bg[0])));
-    layout.dataset.cdark = bgU > 0.5 ? "1" : "0";
+    if (on) sceneC.render(t);
   };
+  prime();
 })();

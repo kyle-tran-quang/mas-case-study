@@ -9,7 +9,7 @@
    Container needs a size (the scene fills it) and scene.css loaded.
    Theme: the engine sets data-theme on the container from the story beat at t.
 
-   Copy of bob-scene/assembly-engine.js. Differences are marked "m-goat:":
+   Copy of the archived bob-scene/assembly-engine.js (~/Documents/GitHub/bob-scene). Differences are marked "m-goat:":
      1. SCENE.hud === false       hides the HUD (title + rail)
      2. SCENE.fit                 reference-frame fit factor (default 0.92 = bob behaviour)
      3. piece.html                a live-HTML piece (Carbon tiles). Its box is the piece rect, size set by the engine.

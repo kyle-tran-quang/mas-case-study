@@ -6,11 +6,12 @@
 <title>M-GOAT: Maximo Growth Opportunities Assessment Tool (Acts 1 and 2.3)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- IBM Plex Sans: Carbon tiles in the scene + hero description/meta. IBM Plex Mono Light Italic: hero title (Figma 82:8717). -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,300&family=IBM+Plex+Serif:wght@300&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,200;1,300;1,400&family=IBM+Plex+Serif:wght@300&display=swap">
 <link rel="stylesheet" href="scene.css">
 <link rel="stylesheet" href="stage-b.css">
 <link rel="stylesheet" href="stagec.css">
 <link rel="stylesheet" href="stagee.css">
+<link rel="stylesheet" href="stagef.css">
 <style>
   /* Mikado (licensed, from /fonts) is the right-hand story column's font, per the author. The file name is the weight/style: Regular is 400. */
   @font-face { font-family: "Mikado"; src: url("../fonts/Mikado-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
@@ -65,6 +66,10 @@
   .text-col p { margin: 0; font-size: 32px; line-height: normal; color: var(--text); font-weight: 400; }
   .text-col p.eyebrow { font-size: 16px; color: var(--muted); letter-spacing: 0; }
   .text-col .hl-o { color: #fa680c; }                                       /* Figma highlight orange */
+  .text-col section img.slot-img { display: block; width: 100%; height: auto; margin-top: 8px; }   /* Stage F slide 2: the old map under the sentence (Figma 333:5958) */
+  /* Stage F slide 5 (Figma 208:9575): full-bleed. The text starts at x 33 of the 1440 frame, i.e. over the (empty) stage, 54 px below the top; 160px Plex Mono ExtraLight Italic at 50%. */
+  .text-col section.full { left: calc(33px - 50vw); width: calc(82.08vw); transform: translateY(calc(-50vh + 5.27vh)); }
+  .text-col section.full p { font: italic 200 160px/1.07em "IBM Plex Mono", ui-monospace, monospace; letter-spacing: -.06em; color: #161616; opacity: .5; }
   .text-col i { font-style: italic; }
   .progress { position: fixed; right: 36px; top: 50%; transform: translateY(-50%); width: 56px; padding: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 3;
               opacity: 0; pointer-events: none; transition: opacity .3s; }
@@ -82,7 +87,14 @@
     .text-col p { font-size: 24px; }
     .progress { right: 12px; }
   }
-  @media (prefers-reduced-motion: reduce) { .text-col section, .progress, .progress i { transition: none; } }
+  /* Gentle theme change (light <-> dark): the beat's data-theme swaps the --bg / --page / --text variables in one frame; these transitions ease the surfaces and copy colour over it.
+     Stage F drives the same variables inline, scroll by scroll (stage-f.js): there the transition is switched off so the colours follow the scroll instead of lagging behind it. */
+  .asm, .text-col, .text-col p, .text-col p.eyebrow { transition: background-color .7s ease, color .7s ease; }
+  .text-col section { transition: opacity .35s ease, color .7s ease; }
+  .progress i { transition: background-color .7s ease, width .3s; }
+  #scene.asm[style*="--bg"], .layout[style*="--page"] .text-col, .layout[style*="--page"] .text-col p, .layout[style*="--page"] .text-col p.eyebrow { transition: none; }
+  .layout[style*="--page"] .progress i, .progress[style*="--tick"] i { transition: none; }
+  @media (prefers-reduced-motion: reduce) { .text-col section, .progress, .progress i, .asm, .text-col, .text-col p { transition: none; } }
 </style>
 </head>
 <body>
@@ -123,6 +135,7 @@
 <script src="stagec-data.js"></script>
 <script src="stagec-piece.js"></script>
 <script src="stage-c.js"></script>
+<script src="stage-c-intro.js"></script>
 <script src="report-piece.js"></script>
 <script src="trust-piece.js"></script>
 <script src="expansion-piece.js"></script>
@@ -130,6 +143,10 @@
 <script src="stagee-data.js"></script>
 <script src="stagee-piece.js"></script>
 <script src="stage-e.js"></script>
+<script src="stagef-data.js"></script>
+<script src="stagef-piece.js"></script>
+<script src="stagef-card.js"></script>
+<script src="stage-f.js"></script>
 <script src="hero-transition.js"></script>
 <script>
 (function () {
@@ -158,8 +175,10 @@
   const buildSection = b => {
     const s = document.createElement("section");
     s.dataset.beat = b.id; s.style.top = `calc(${(b.snap ?? b.range[0]) * maxVh}vh + 50vh)`;
+    if (b.full) s.classList.add("full");                                    // a text slot with `full: true` spans the whole viewport (Stage F slide 5)
     if (b.eyebrow) { const e = document.createElement("p"); e.className = "eyebrow"; e.textContent = b.eyebrow; s.appendChild(e); }
     b.copy.forEach(c => { const p = document.createElement("p"); p.innerHTML = c; s.appendChild(p); });   // copy is author-written story.js text; it may carry <span class="hl-o"> / <i>
+    if (b.image) { const im = document.createElement("img"); im.className = "slot-img"; im.src = b.image.src; im.alt = b.image.alt || ""; im.width = b.image.w; im.height = b.image.h; im.decoding = "async"; s.appendChild(im); }   // a text slot with `image` shows it below the copy and fades with the slot
     return s;
   };
   // One text "slot" per section. A beat normally has one slot (its `copy`, on screen for the whole beat). A beat with `texts` has one slot per entry:
@@ -169,7 +188,7 @@
     if (b.texts && b.texts.length) {
       b.texts.forEach((t, i) => {
         const prev = b.texts[i - 1], next = b.texts[i + 1];
-        slots.push({ id: t.id, beat: b, snap: t.snap, copy: t.copy, eyebrow: t.eyebrow, chapter: t.chapter,
+        slots.push({ id: t.id, beat: b, snap: t.snap, copy: t.copy, eyebrow: t.eyebrow, chapter: t.chapter, image: t.image, full: t.full,
                      from: t.from ?? (prev ? (prev.snap + t.snap) / 2 : b.range[0]), to: t.to ?? (next ? (t.snap + next.snap) / 2 : b.range[1]) });
       });
     } else if (b.copy.length || b.eyebrow) slots.push({ id: b.id, beat: b, snap: b.snap ?? b.range[0], copy: b.copy, eyebrow: b.eyebrow, from: b.from ?? b.range[0], to: b.to ?? b.range[1] });
@@ -235,8 +254,7 @@
     const { beat } = scene.render(t);
     if (SCENE.afterRender) SCENE.afterRender(t);              // Stage C: the full-screen overlay (stage-c.js)
     const cur = STORY.beats.find(b => b.id === beat);
-    // Stage C plays on a light cover first: the page stays light until its backdrop turns dark (layout.dataset.cdark, set by stage-c.js), whatever the beat says
-    layout.dataset.theme = cur ? (cur.id === "second" && layout.dataset.cdark !== "1" ? "light" : cur.theme) : "light";
+    layout.dataset.theme = cur ? cur.theme : "light";         // Stage C is dark from its first vh (778): its generation intro is a separate one-off overlay (stage-c-intro.js), the page underneath is already landed
     prog.dataset.theme = layout.dataset.theme;                // the nav is a sibling of the layout, so it gets the theme itself (active tick = the text colour, so it never vanishes on the dark page)
     const mine = slots.filter(sl => sl.beat === cur);
     const slot = mine.find(sl => t >= sl.from && t < sl.to) || mine[mine.length - 1] && (t >= mine[mine.length - 1].to ? mine[mine.length - 1] : mine.find(sl => t < sl.from) || mine[0]);   // inside a slot -> that slot; past the last -> the last (the end of the page); before the first -> the first

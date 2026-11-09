@@ -9,7 +9,8 @@ const auto = page => page.evaluate(() => window.__mgoat.auto());
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
-test("v1 beat: live UI, auto-scroll, skip, no errors", async ({ page }) => {
+// The v1 auto-scroll (window.__mgoat.auto) was removed from m-goat/index.html and is to be re-added in Stage B; re-enable then.
+test.fixme("v1 beat: live UI, auto-scroll, skip, no errors", async ({ page }) => {
   const errors = [];
   page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   page.on("pageerror", e => errors.push(String(e)));

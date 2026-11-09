@@ -44,36 +44,43 @@
     q1:    (() => { const s = 2.1, cx = 475.5, cy = SCR.y1 + 189; return { s, tx: 360 - cx * s, ty: 512 - cy * s }; })()   // question 1 block centre -> centre of the LEFT half
   };
 
+  /* The .sc-screen subtree (the 680 x 420 dark questionnaire) as markup. Exported so other pieces (stage-c-intro.js) reuse the REAL screen instead of copying it. */
+  const opt = (txt, i, q) => `<div class="sc-opt" data-g="rect" data-q="${q}" data-i="${i}"><span class="sc-cb"><svg viewBox="0 0 6.468 6.468"><rect x=".202" y=".202" width="6.064" height="6.064" rx=".607"/><path d="M1.5 3.4 L2.8 4.7 L5 1.9" pathLength="1"/></svg></span><span class="sc-ot" data-g="text">${txt}</span></div>`;
+  const head = (txt, ic) => `<div class="sc-qh"><div class="sc-h2" data-g="text">${txt}</div><div class="sc-info" data-g="rect"><img src="${A}${ic}" alt="" width="8.086" height="8.086"></div></div>`;
+  function screenHTML() {
+    return (
+      `<div class="sc-screen">` +
+        `<div class="sc-side" data-g="rect">` +
+          `<div class="sc-logo" data-g="rect"><img src="${A}logo-base.svg" alt=""><div class="sc-logo-g"><img src="${A}logo-group.svg" alt=""></div><img class="sc-logo-d" src="${A}logo-dot.svg" alt=""></div>` +
+          `<div class="sc-trow"><div class="sc-t1" data-g="text"><b>Maximo Application Suite</b><br>Growth readiness assessment</div><div class="sc-beta" data-g="text">beta v3</div></div>` +
+          `<div class="sc-mid"><div class="sc-title" data-g="text">Your goals and priorities</div><div class="sc-page" data-g="text">Page 2 of 7</div></div>` +
+          `<div class="sc-ibm" data-g="rect"><div class="sc-ibm-m"><img src="${A}ibm.svg" alt=""></div></div>` +
+          `<div class="sc-art" data-g="rect"><img src="${A}sidebar-art.png" alt=""></div>` +
+        `</div>` +
+        `<div class="sc-main"><div class="sc-form">` +
+          `<div class="sc-pbspace"></div>` +
+          `<div class="sc-section">` +
+            `<div class="sc-label"><span data-g="text">Goals &amp; priorities</span><i></i></div>` +
+            `<div class="sc-q">${head("What are your top strategic business objectives? (choose up to 3)", "info-1.svg")}<div class="sc-opts">${Q1.map((t, i) => opt(t, i, 1)).join("")}</div></div>` +
+            `<div class="sc-q">${head("What are your organisation’s biggest obstacles? (select all that apply)", "info-2.svg")}<div class="sc-opts">${Q2.map((t, i) => opt(t, i, 2)).join("")}</div></div>` +
+          `</div>` +
+        `</div></div>` +
+        `<div class="sc-progress" data-g="rect"><div class="sc-pt"><div class="sc-pf"></div></div></div>` +
+        `<div class="sc-btns"><div class="sc-btn" data-g="rect">Back</div><div class="sc-btn sc-next" data-g="rect">Next<img src="${A}arrow.svg" alt="" width="6.468" height="6.468"></div></div>` +
+      `</div>`
+    );
+  }
+
   let UID = 0;
 
   function make({ vh, T }) {
     T = T || window.STAGEC.TIMING;
     const uid = "sc" + (++UID);
 
-    const opt = (txt, i, q) => `<div class="sc-opt" data-g="rect" data-q="${q}" data-i="${i}"><span class="sc-cb"><svg viewBox="0 0 6.468 6.468"><rect x=".202" y=".202" width="6.064" height="6.064" rx=".607"/><path d="M1.5 3.4 L2.8 4.7 L5 1.9" pathLength="1"/></svg></span><span class="sc-ot" data-g="text">${txt}</span></div>`;
-    const head = (txt, ic) => `<div class="sc-qh"><div class="sc-h2" data-g="text">${txt}</div><div class="sc-info" data-g="rect"><img src="${A}${ic}" alt="" width="8.086" height="8.086"></div></div>`;
     const html =
       `<div class="sc-bgL"></div><div class="sc-bgR"></div>` +
       `<div class="sc-clip"><div class="sc-cam">` +
-        `<div class="sc-screen">` +
-          `<div class="sc-side" data-g="rect">` +
-            `<div class="sc-logo" data-g="rect"><img src="${A}logo-base.svg" alt=""><div class="sc-logo-g"><img src="${A}logo-group.svg" alt=""></div><img class="sc-logo-d" src="${A}logo-dot.svg" alt=""></div>` +
-            `<div class="sc-trow"><div class="sc-t1" data-g="text"><b>Maximo Application Suite</b><br>Growth readiness assessment</div><div class="sc-beta" data-g="text">beta v3</div></div>` +
-            `<div class="sc-mid"><div class="sc-title" data-g="text">Your goals and priorities</div><div class="sc-page" data-g="text">Page 2 of 7</div></div>` +
-            `<div class="sc-ibm" data-g="rect"><div class="sc-ibm-m"><img src="${A}ibm.svg" alt=""></div></div>` +
-            `<div class="sc-art" data-g="rect"><img src="${A}sidebar-art.png" alt=""></div>` +
-          `</div>` +
-          `<div class="sc-main"><div class="sc-form">` +
-            `<div class="sc-pbspace"></div>` +
-            `<div class="sc-section">` +
-              `<div class="sc-label"><span data-g="text">Goals &amp; priorities</span><i></i></div>` +
-              `<div class="sc-q">${head("What are your top strategic business objectives? (choose up to 3)", "info-1.svg")}<div class="sc-opts">${Q1.map((t, i) => opt(t, i, 1)).join("")}</div></div>` +
-              `<div class="sc-q">${head("What are your organisation’s biggest obstacles? (select all that apply)", "info-2.svg")}<div class="sc-opts">${Q2.map((t, i) => opt(t, i, 2)).join("")}</div></div>` +
-            `</div>` +
-          `</div></div>` +
-          `<div class="sc-progress" data-g="rect"><div class="sc-pt"><div class="sc-pf"></div></div></div>` +
-          `<div class="sc-btns"><div class="sc-btn" data-g="rect">Back</div><div class="sc-btn sc-next" data-g="rect">Next<img src="${A}arrow.svg" alt="" width="6.468" height="6.468"></div></div>` +
-        `</div>` +
+        screenHTML() +
         `<div class="sc-scan"></div>` +
         `<svg class="sc-wire" xmlns="http://www.w3.org/2000/svg"></svg>` +
         `<svg class="sc-cur" width="12" height="18" viewBox="0 0 12 18"><path d="M1 1 L1 14.2 L4.1 11.2 L6.3 16.6 L8.3 15.7 L6.1 10.4 L10.4 10.4 Z" fill="#fff" stroke="#161616" stroke-width="1" stroke-linejoin="round"/></svg>` +
@@ -162,6 +169,11 @@
       const front = lerp(-60, SCR.h + 60, revU);
       const live = revU < 1;
       st.screen.style.webkitMaskImage = st.screen.style.maskImage = live ? `linear-gradient(to bottom,#000 ${f1(front - 28)}px,transparent ${f1(front)}px)` : "none";
+      {                                                           // MORPH from the first iteration (wired page only, T.morph): the window fades in while its bottom edge grows from the v1's height (374) to its own (420)
+        const mU = T.morph ? sm(win(v, T.morph)) : 1;
+        st.screen.style.opacity = mU >= 1 ? "" : mU.toFixed(3);
+        st.screen.style.clipPath = mU >= 1 ? "none" : `inset(0 0 ${f1((1 - mU) * 46)}px 0)`;
+      }
       st.wire.style.display = live ? "block" : "none";
       st.wire.style.webkitMaskImage = st.wire.style.maskImage = `linear-gradient(to bottom,transparent ${f1(front - 20)}px,#000 ${f1(front + 8)}px)`;
       st.scan.style.top = f1(SCR.y0 + front) + "px"; st.scan.style.opacity = revU > 0 && revU < 1 ? .85 : 0;
@@ -204,5 +216,5 @@
     return { html, update, reflow };
   }
 
-  window.StagecPiece = { make, CAM, SCR, SCROLL_MAX };
+  window.StagecPiece = { make, screenHTML, CAM, SCR, SCROLL_MAX };
 })();
